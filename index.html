@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>Gym Hero</title>
+<meta name="description" content="Suivi de musculation hors ligne : séances, charges, progression et muscles travaillés.">
+<meta name="theme-color" content="#080C16">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gym Hero">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="icons/icon.svg" alt="Gym Hero">
+    <div class="brand-txt">
+      <h1>Gym Hero</h1>
+      <small id="brandSub">Prêt à soulever</small>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="btnSettings" aria-label="Paramètres">⚙️</button>
+</header>
+
+<main>
+  <section class="view active" id="view-home"></section>
+  <section class="view" id="view-programs"></section>
+  <section class="view" id="view-session"></section>
+  <section class="view" id="view-progress"></section>
+  <section class="view" id="view-anatomy"></section>
+  <section class="view" id="view-calendar"></section>
+  <section class="view" id="view-settings"></section>
+</main>
+
+<nav class="nav" id="nav">
+  <button data-tab="home"><span class="ic">🏠</span>Accueil</button>
+  <button data-tab="programs"><span class="ic">📋</span>Programmes</button>
+  <button data-tab="session"><span class="ic">🏋️</span>Séance</button>
+  <button data-tab="progress"><span class="ic">📈</span>Progrès</button>
+  <button data-tab="anatomy"><span class="ic">🫀</span>Anatomie</button>
+  <button data-tab="calendar"><span class="ic">🗓️</span>Régularité</button>
+</nav>
+
+<script src="assets/vendor/chart.umd.min.js"></script>
+<script src="js/muscles.js"></script>
+<script src="js/exercises.js"></script>
+<script src="js/anatomy.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/programs.js"></script>
+<script src="js/session.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

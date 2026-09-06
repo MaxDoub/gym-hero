@@ -1,0 +1,129 @@
+# 🏋️ Gym Hero — v1.0
+
+Suivi de musculation **100 % hors ligne**, sans compte ni serveur : tout reste sur ton téléphone.
+HTML/CSS/JavaScript vanilla + Chart.js, installable comme une app native sur iPhone (PWA).
+
+---
+
+## Installer sur l'iPhone
+
+1. Publier le dossier sur un hébergement statique en **HTTPS** (GitHub Pages, Netlify, Cloudflare Pages…).
+2. Ouvrir l'adresse dans **Safari** (pas Chrome : seul Safari sait installer une PWA sur iOS).
+3. Bouton **Partager** ▸ **Sur l'écran d'accueil**.
+
+L'app s'ouvre alors en plein écran, avec ton icône, et **fonctionne sans réseau** —
+pratique dans les sous-sols de salle de sport.
+
+### Publier sur GitHub Pages
+
+```bash
+git init && git add . && git commit -m "Gym Hero v1"
+git branch -M main
+git remote add origin https://github.com/<ton-compte>/gym-hero.git
+git push -u origin main
+```
+
+Puis dans le dépôt : **Settings ▸ Pages ▸ Source : branche `main`, dossier `/root`**.
+L'adresse sera `https://<ton-compte>.github.io/gym-hero/`.
+
+### Tester en local
+
+```bash
+python3 -m http.server 8777
+```
+
+Puis <http://127.0.0.1:8777>. (Ouvrir `index.html` par double-clic ne suffit pas :
+le mode hors ligne exige un vrai serveur.)
+
+---
+
+## Mettre ton vrai logo
+
+Les icônes actuelles sont une **recréation vectorielle** de ton logo (`assets/logo.svg`).
+Pour utiliser le fichier original :
+
+1. Ouvrir `tools/icons.html` dans un navigateur.
+2. Déposer ton PNG carré (1024×1024 de préférence).
+3. Télécharger les 4 fichiers générés et les placer dans `icons/` :
+   `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`.
+4. Pour que le logo change aussi **dans** l'app (en-tête et écran Paramètres),
+   remplacer `icons/icon.svg` par ton image et ajuster les deux balises `<img src="icons/icon.svg">`.
+
+Après remplacement, incrémenter `CACHE` dans `sw.js` (`gym-hero-v1` → `v2`)
+pour forcer la mise à jour du cache hors ligne.
+
+---
+
+## Ce que fait l'app
+
+| Onglet | Contenu |
+|---|---|
+| **Accueil** | Séances (total / semaine / mois / année), objectif hebdo, dernière activité, volume total, records, muscles des 7 derniers jours |
+| **Programmes** | Séances types réutilisables (Jambes, Push, Pull…), édition des séries/reps/charges, aperçu des muscles ciblés |
+| **Séance** | Exécution guidée : cases à cocher, chrono de repos, ajout/retrait d'exercice à la volée, détection de record en direct |
+| **Progrès** | Courbes de charge et de 1RM estimé, volume par séance, volume par groupe musculaire, tous les records |
+| **Anatomie** | Corps face + dos, muscles colorés selon le volume travaillé (7 j / 30 j / tout), muscles négligés |
+| **Régularité** | Calendrier mensuel, 6 derniers mois en damier, séries de semaines consécutives, historique |
+| **Paramètres** | Objectif hebdo, repos par défaut, progression auto, son/vibration, export/import JSON |
+
+### Progression automatique des charges
+
+À la fin d'une séance, l'app **réécrit le programme avec les charges réellement utilisées**.
+Si toutes les séries ont atteint l'objectif de répétitions, elle ajoute automatiquement
++2,5 kg (haut du corps) ou +5 kg (bas du corps) — réglable, et désactivable, dans Paramètres.
+La séance suivante démarre donc déjà pré-remplie avec les bons poids.
+
+### Sauvegarde
+
+Les données vivent dans le `localStorage` de Safari. Effacer les données du site
+ou désinstaller l'app les supprime : **exporter un JSON de temps en temps**
+(Paramètres ▸ Exporter). L'import restaure tout à l'identique.
+
+---
+
+## Structure
+
+```
+index.html              coquille de l'app + navigation
+manifest.webmanifest    déclaration PWA (nom, icônes, couleurs)
+sw.js                   service worker : cache hors ligne
+css/style.css           thème dérivé des couleurs du logo
+js/muscles.js           référentiel des muscles (FR)
+js/exercises.js         catalogue de 66 exercices + mapping musculaire
+js/anatomy.js           corps humain SVG + heatmap
+js/store.js             données, statistiques, records, progression
+js/ui.js                formatage, toasts, feuilles modales
+js/programs.js          gestion et édition des programmes
+js/session.js           séance en cours, chrono de repos
+js/app.js               routeur et vues restantes
+tools/icons.html        générateur d'icônes iOS/Android
+assets/vendor/          Chart.js (embarqué pour le hors ligne)
+```
+
+---
+
+## Pistes pour les versions suivantes
+
+**V2 — confort en salle**
+- Séries d'échauffement distinguées des séries de travail
+- RPE / RIR par série (ressenti de difficulté)
+- Superset et circuits
+- Minuteur pour les exercices au temps (gainage)
+- Notes et photos de progression
+
+**V3 — analyse**
+- Charge d'entraînement hebdomadaire et détection de surcharge
+- Fraîcheur musculaire : le corps se « refroidit » avec les jours de repos
+- Comparaison de deux périodes
+- Suivi du poids de corps et des mensurations
+- Objectifs par exercice avec date cible
+
+**V4 — au-delà**
+- Sauvegarde chiffrée dans iCloud Drive (fichier, toujours sans serveur)
+- Partage d'un programme par lien ou QR code
+- Widget iOS et raccourcis Siri (via l'app Raccourcis)
+- Import depuis Strong / Hevy / Apple Santé
+
+---
+
+Fait pour la salle, pas pour le cloud. 💪
