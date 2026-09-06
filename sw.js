@@ -1,5 +1,5 @@
 /* Gym Hero — service worker : l'app fonctionne intégralement hors ligne */
-const CACHE = 'gym-hero-v1';
+const CACHE = 'gym-hero-v2';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest',
   './css/style.css',
