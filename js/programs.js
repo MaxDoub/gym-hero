@@ -224,5 +224,5 @@ function drawEditorItems(body) {
 function drawBodiesPreview(body) {
   const box = $('#pgBodies', body);
   if (!box) return;
-  renderBodyPair(box, heatFromExercises(programExercises(draft)), { uid: 'pg' });
+  renderBodyView(box, heatFromExercises(programExercises(draft)), { uid: 'pg' });
 }

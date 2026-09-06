@@ -107,7 +107,7 @@ function renderHome() {
     <div class="heat-legend"><span>Peu</span><div class="bar"></div><span>Beaucoup</span></div>
   `;
 
-  renderBodyPair($('#homeBodies', v), normalize(volumeByMuscle(sessionsInLastDays(7))), { uid: 'hm' });
+  renderBodyView($('#homeBodies', v), normalize(volumeByMuscle(sessionsInLastDays(7))), { uid: 'hm' });
   $$('[data-ex]', v).forEach(el => el.onclick = () => exerciseSheet(el.dataset.ex));
   $$('[data-sess]', v).forEach(el => el.onclick = () => sessionSheet(el.dataset.sess));
 }
@@ -235,7 +235,7 @@ function renderAnatomy() {
         </div>
       </div>` : ''}`;
 
-  renderBodyPair($('#anaBodies', v), heat, { uid: 'an', interactive: true, onPick: muscleSheet });
+  renderBodyView($('#anaBodies', v), heat, { uid: 'an', interactive: true, onPick: muscleSheet });
   $$('[data-range]', v).forEach(b => b.onclick = () => { anatomyRange = +b.dataset.range; renderAnatomy(); });
   $$('[data-m]', v).forEach(el => el.onclick = () => muscleSheet(el.dataset.m));
 }
@@ -359,7 +359,7 @@ function sessionSheet(id) {
     <div class="bodies" id="shBodies"></div>
     <button class="btn danger block" style="margin-top:16px" id="shDel">🗑 Supprimer cette séance</button>
   `, body => {
-    renderBodyPair($('#shBodies', body), normalize(volumeByMuscle([s])), { uid: 'sh' });
+    renderBodyView($('#shBodies', body), normalize(volumeByMuscle([s])), { uid: 'sh' });
     $('#shDel', body).onclick = () => confirmSheet('Supprimer ?', 'Cette séance sera définitivement effacée.', 'Supprimer', () => {
       deleteSession(id); renderAll(); toast('Séance supprimée');
     }, true);
@@ -391,7 +391,7 @@ function exerciseSheet(exId) {
             <span>${fmtDate(h.date, true)} · ${h.sets} séries · ${fmtVolume(h.volume)}</span></div>
         </div>`).join('')}</div>` : ''}
   `, body => {
-    renderBodyPair($('#exBodies', body), heatFromExercises([ex]), { uid: 'ex' });
+    renderBodyView($('#exBodies', body), heatFromExercises([ex]), { uid: 'ex' });
     if (hist.length > 1) lineChart('exChart', hist.map(h => fmtDate(h.date)),
       [{ label: 'Charge', data: hist.map(h => h.top), color: '#FFC531' }]);
   });

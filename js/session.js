@@ -72,7 +72,7 @@ function renderSession() {
     <div class="bodies" id="sessBodies"></div>`;
 
   drawSessionList();
-  renderBodyPair($('#sessBodies', v), normalize(volumeByMuscle([s])), { uid: 'ss' });
+  renderBodyView($('#sessBodies', v), normalize(volumeByMuscle([s])), { uid: 'ss' });
 
   $('#sessFinish', v).onclick = finishSessionFlow;
   $('#sessCancel', v).onclick = () => confirmSheet('Abandonner ?', 'La séance en cours sera perdue.', 'Abandonner', () => {
@@ -204,7 +204,7 @@ function refreshSessionHeader() {
     if (vt) vt.textContent = fmtVolume(sessionVolume(s));
   }
   const bodies = $('#sessBodies');
-  if (bodies) renderBodyPair(bodies, normalize(volumeByMuscle([s])), { uid: 'ss' });
+  if (bodies) renderBodyView(bodies, normalize(volumeByMuscle([s])), { uid: 'ss' });
 }
 
 /* ---------------- Records en direct ---------------- */
@@ -291,5 +291,5 @@ function showSessionSummary(sess, changes) {
         </div>`).join('')}</div>`
       : `<p class="tiny muted" style="margin-top:14px">Charges mémorisées : tu retrouveras les mêmes au prochain passage.</p>`}
     <button class="btn primary block" style="margin-top:16px" onclick="closeSheet()">Parfait 💪</button>
-  `, body => renderBodyPair($('#sumBodies', body), byMuscle, { uid: 'sum' }));
+  `, body => renderBodyView($('#sumBodies', body), byMuscle, { uid: 'sum' }));
 }

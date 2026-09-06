@@ -190,13 +190,26 @@ main{padding:4px 16px 28px;max-width:760px;margin:0 auto}
 .rest-bar button{background:rgba(0,0,0,.18);color:#1B1200;padding:7px 12px;border-radius:10px;font-weight:800;font-size:13px}
 
 /* ---------- Anatomie ---------- */
-.bodies{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.body-wrap{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:8px 4px 4px}
-.body-svg{width:100%;height:auto;display:block;max-height:52vh}
-.body-cap{text-align:center;font-size:11px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:2px 0 4px}
+.bodies{display:block}
+.body-view{display:flex;flex-direction:column;align-items:center}
+.body-tabs{
+  display:inline-flex;background:var(--bg2);border:1px solid var(--line);
+  border-radius:999px;padding:3px;gap:2px;margin-bottom:10px
+}
+.body-tabs button{
+  padding:8px 26px;border-radius:999px;font-size:13px;font-weight:700;
+  color:var(--muted);transition:.18s
+}
+.body-tabs button.on{background:var(--grad);color:#fff;box-shadow:0 3px 12px rgba(43,107,255,.35)}
+.body-stage{
+  width:100%;display:flex;justify-content:center;
+  background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:10px 6px
+}
+.body-svg{height:auto;display:block;max-height:56vh;width:auto;max-width:100%}
+.body-volume{pointer-events:none;mix-blend-mode:multiply}
 .body-fill{fill:#101728;stroke:none}
 .body-stroke{stroke:#5A6C9E;stroke-width:2;fill:none;stroke-linejoin:round}
-.body-detail path{stroke:rgba(150,175,225,.30);stroke-width:1;fill:none;stroke-linecap:round}
+.body-detail path{stroke:rgba(160,190,240,.34);stroke-width:1.1;fill:none;stroke-linecap:round;pointer-events:none}
 .muscle{transition:fill .35s ease}
 .muscle path,.muscle rect{fill:inherit;stroke:rgba(5,8,16,.9);stroke-width:1.1;stroke-linejoin:round}
 .muscle.is-active path,.muscle.is-active rect{stroke:rgba(6,10,20,.5)}
