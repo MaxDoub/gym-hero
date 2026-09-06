@@ -192,12 +192,14 @@ main{padding:4px 16px 28px;max-width:760px;margin:0 auto}
 /* ---------- Anatomie ---------- */
 .bodies{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .body-wrap{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:8px 4px 4px}
-.body-svg{width:100%;height:auto;display:block;max-height:46vh}
+.body-svg{width:100%;height:auto;display:block;max-height:52vh}
 .body-cap{text-align:center;font-size:11px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:2px 0 4px}
 .body-fill{fill:#101728;stroke:none}
-.body-stroke{stroke:#41507A;stroke-width:1.6;fill:none;stroke-linejoin:round}
-.body-detail path{stroke:#2B3654;stroke-width:.9;fill:none}
-.muscle{stroke:rgba(8,12,22,.6);stroke-width:.7;transition:fill .35s ease,fill-opacity .35s ease}
+.body-stroke{stroke:#5A6C9E;stroke-width:2;fill:none;stroke-linejoin:round}
+.body-detail path{stroke:rgba(150,175,225,.30);stroke-width:1;fill:none;stroke-linecap:round}
+.muscle{transition:fill .35s ease}
+.muscle path,.muscle rect{fill:inherit;stroke:rgba(5,8,16,.9);stroke-width:1.1;stroke-linejoin:round}
+.muscle.is-active path,.muscle.is-active rect{stroke:rgba(6,10,20,.5)}
 .is-interactive .muscle{cursor:pointer}
 .is-interactive .muscle:active{stroke:#fff;stroke-width:1.6}
 .heat-legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted2);margin-top:8px}
