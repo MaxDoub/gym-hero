@@ -37,6 +37,26 @@ le mode hors ligne exige un vrai serveur.)
 
 ---
 
+## Comment fonctionne le corps interactif
+
+Les deux planches `assets/body-front.png` et `assets/body-back.png` ont un fond
+transparent. L'app les empile en deux couches :
+
+1. les zones musculaires colorées (`js/anatomy.js`), **découpées par la planche
+   elle-même** grâce à un masque CSS : rien ne peut déborder du corps ;
+2. la planche par-dessus, inversée et fusionnée en `screen`, ce qui transforme
+   ses traits noirs en traits blancs lisibles sur le thème sombre.
+
+Pour déplacer une zone, ouvre `tools/calibrate.html` : il affiche la planche
+avec une grille de coordonnées, dans le même repère que `js/anatomy.js`
+(720 × 1080, axe de symétrie à x = 360). Les zones latérales ne sont définies
+qu'une fois, pour la moitié gauche : l'autre côté est un reflet automatique.
+
+Si tu remplaces les planches, garde le même cadrage, sinon toutes les zones
+sont à recaler.
+
+---
+
 ## Mettre ton vrai logo
 
 Les icônes actuelles sont une **recréation vectorielle** de ton logo (`assets/logo.svg`).
@@ -62,7 +82,7 @@ pour forcer la mise à jour du cache hors ligne.
 | **Programmes** | Séances types réutilisables (Jambes, Push, Pull…), édition des séries/reps/charges, aperçu des muscles ciblés |
 | **Séance** | Exécution guidée : cases à cocher, chrono de repos, ajout/retrait d'exercice à la volée, détection de record en direct |
 | **Progrès** | Courbes de charge et de 1RM estimé, volume par séance, volume par groupe musculaire, tous les records |
-| **Anatomie** | Corps face + dos, muscles colorés selon le volume travaillé (7 j / 30 j / tout), muscles négligés |
+| **Anatomie** | Planche anatomique face **ou** dos (bascule par onglet), muscles colorés selon le volume travaillé (7 j / 30 j / tout), muscles négligés |
 | **Régularité** | Calendrier mensuel, 6 derniers mois en damier, séries de semaines consécutives, historique |
 | **Paramètres** | Objectif hebdo, repos par défaut, progression auto, son/vibration, export/import JSON |
 
@@ -90,7 +110,9 @@ sw.js                   service worker : cache hors ligne
 css/style.css           thème dérivé des couleurs du logo
 js/muscles.js           référentiel des muscles (FR)
 js/exercises.js         catalogue de 66 exercices + mapping musculaire
-js/anatomy.js           corps humain SVG + heatmap
+js/anatomy.js           zones musculaires + heatmap posées sur les planches
+assets/body-*.png       planches anatomiques face et dos (fond transparent)
+tools/calibrate.html    grille pour recaler les zones sur les planches
 js/store.js             données, statistiques, records, progression
 js/ui.js                formatage, toasts, feuilles modales
 js/programs.js          gestion et édition des programmes

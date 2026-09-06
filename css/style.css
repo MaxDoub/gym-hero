@@ -205,16 +205,24 @@ main{padding:4px 16px 28px;max-width:760px;margin:0 auto}
   width:100%;display:flex;justify-content:center;
   background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:10px 6px
 }
-.body-svg{height:auto;display:block;max-height:56vh;width:auto;max-width:100%}
-.body-volume{pointer-events:none;mix-blend-mode:multiply}
-.body-fill{fill:#101728;stroke:none}
-.body-stroke{stroke:#5A6C9E;stroke-width:2;fill:none;stroke-linejoin:round}
-.body-detail path{stroke:rgba(160,190,240,.34);stroke-width:1.1;fill:none;stroke-linecap:round;pointer-events:none}
+.body-fig{
+  position:relative;isolation:isolate;
+  height:56vh;max-height:540px;aspect-ratio:2/3
+}
+.body-paint{
+  position:absolute;inset:0;
+  -webkit-mask-size:100% 100%;mask-size:100% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-position:center;mask-position:center
+}
+.body-paint svg{width:100%;height:100%;display:block}
+.body-lines{
+  position:relative;display:block;width:100%;height:100%;object-fit:contain;
+  filter:invert(1);mix-blend-mode:screen;pointer-events:none
+}
 .muscle{transition:fill .35s ease}
-.muscle path,.muscle rect{fill:inherit;stroke:rgba(5,8,16,.9);stroke-width:1.1;stroke-linejoin:round}
-.muscle.is-active path,.muscle.is-active rect{stroke:rgba(6,10,20,.5)}
+.muscle path,.muscle ellipse,.muscle rect{fill:inherit}
 .is-interactive .muscle{cursor:pointer}
-.is-interactive .muscle:active{stroke:#fff;stroke-width:1.6}
 .heat-legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted2);margin-top:8px}
 .heat-legend .bar{
   flex:1;height:8px;border-radius:99px;

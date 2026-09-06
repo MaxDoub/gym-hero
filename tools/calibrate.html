@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<title>Calibration des zones musculaires</title>
+<style>
+ body{margin:0;background:#0b1020;color:#eaf0ff;font:13px system-ui}
+ .wrap{position:relative;width:720px;height:1080px;margin:0 auto}
+ img{position:absolute;inset:0;width:720px;height:1080px}
+ svg{position:absolute;inset:0}
+ .g{stroke:#22d3ee;stroke-width:.6;opacity:.5}
+ .g.major{stroke:#ff2d8a;stroke-width:1.1;opacity:.85}
+ text{fill:#ffc531;font:10px monospace}
+ .z{fill:#ff2d8a;fill-opacity:.35;stroke:#fff;stroke-width:1}
+</style></head><body>
+<div class="wrap">
+  <img id="bodyImg" src="../assets/body-front.png" alt="">
+  <svg id="grid" viewBox="0 0 720 1080" width="720" height="1080"></svg>
+  <svg id="zones" viewBox="0 0 720 1080" width="720" height="1080"></svg>
+</div>
+<script>
+const g = document.getElementById('grid');
+let h = '';
+for (let x = 0; x <= 720; x += 40) {
+  h += `<line class="g ${x%120===0?'major':''}" x1="${x}" y1="0" x2="${x}" y2="1080"/>`;
+  if (x % 120 === 0) h += `<text x="${x+2}" y="12">${x}</text>`;
+}
+for (let y = 0; y <= 1080; y += 40) {
+  h += `<line class="g ${y%120===0?'major':''}" x1="0" y1="${y}" x2="720" y2="${y}"/>`;
+  if (y % 120 === 0) h += `<text x="2" y="${y-3}">${y}</text>`;
+}
+g.innerHTML = h;
+// permet d'injecter des zones à tester : setZones('<path .../>')
+window.setZones = s => document.getElementById('zones').innerHTML = s;
+window.setView = v => document.getElementById('bodyImg').src = '../assets/body-' + v + '.png';
+</script></body></html>

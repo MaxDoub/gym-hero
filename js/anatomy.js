@@ -1,104 +1,69 @@
-/* Gym Hero — Corps humain interactif (SVG vectoriel, face + dos)
-   Chaque muscle est un tracé anatomique portant data-m="<muscleId>", coloré
-   selon une heatmap { muscleId: 0→1 }. Les muscles latéraux sont dessinés une
-   seule fois (moitié gauche, axe x=120) puis clonés en miroir : les deux côtés
-   restent cliquables. Tout est découpé par la silhouette, rien ne déborde.   */
+/* Gym Hero — Corps humain interactif
+   Rendu en trois couches superposées :
+     1. les zones musculaires colorées (SVG), découpées par la silhouette
+        grâce à un masque tiré de la planche elle-même ;
+     2. la planche anatomique (PNG à fond transparent), inversée et fusionnée
+        en « screen » : ses traits noirs deviennent blancs sur le thème sombre ;
+   Chaque zone porte data-m="<muscleId>" et se colore selon une heatmap
+   { muscleId: 0→1 }. Les zones latérales sont définies une fois (moitié
+   gauche, axe x=360) puis reflétées : les deux côtés restent cliquables. */
 
-const BODY_W = 240;
-const BODY_VIEWBOX = '0 0 240 520';
-const BODY_OUTLINE = 'M120,10C134,10 141,24 141,44C141,62 134,73 128,79L132,86C140,90 154,96 168,106C182,114 192,128 192,150C193,170 193,190 191,210C190,224 192,236 194,248C197,266 201,290 199,306C203,320 209,338 205,350C201,358 195,348 193,338C190,346 185,342 185,332L182,314C178,294 174,272 172,256C170,234 166,192 164,168C165,175 166,186 166,198C164,214 161,231 158,247C161,256 167,262 169,271C173,296 175,332 172,366C170,382 169,392 167,402C166,420 166,440 162,462C159,478 156,488 155,497C159,505 165,517 155,518L133,518C129,514 130,504 131,497C131,478 132,458 132,438C132,418 131,401 130,385C129,351 128,309 126,277L120,265L114,277C112,309 111,351 110,385C109,401 108,418 108,438C108,458 109,478 109,497C110,504 111,514 107,518L85,518C75,517 81,505 85,497C84,488 81,478 78,462C74,440 74,420 73,402C71,392 70,382 68,366C65,332 67,296 71,271C73,262 79,256 82,247C79,231 76,214 74,198C74,186 75,175 76,168C74,192 70,234 68,256C66,272 62,294 58,314L55,332C55,342 50,346 47,338C45,348 39,358 35,350C31,338 37,320 41,306C39,290 43,266 46,248C48,236 50,224 49,210C47,190 47,170 48,150C48,128 58,114 72,106C86,96 100,90 108,86L112,79C106,73 99,62 99,44C99,24 106,10 120,10Z';
+const BODY_W = 720, BODY_H = 1080;
+const BODY_VIEWBOX = `0 0 ${BODY_W} ${BODY_H}`;
+const BODY_IMG = { front: 'assets/body-front.png', back: 'assets/body-back.png' };
 
-/* ---------------- Muscles, vue de face ---------------- */
-const MUSCLES_FRONT_HALF = [
-  { m:'traps',       d:'M111,84C101,88 86,94 70,108C85,102 99,98 111,98Z' },
-  { m:'neck',        d:'M112,79C108,87 105,95 103,101C108,104 114,99 117,89Z' },
-  { m:'side_delts',  d:'M58,116C50,124 46,138 47,154C52,162 58,160 61,152C62,138 61,124 58,116Z' },
-  { m:'front_delts', d:'M72,108C58,116 50,130 50,152C52,166 60,175 69,177C78,177 84,166 85,150C84,132 82,116 72,108Z' },
-  { m:'chest',       d:'M118,108C106,107 92,114 84,127C79,140 80,158 87,170C99,178 111,175 117,167C118,152 119,128 118,108Z' },
-  { m:'biceps',      d:'M60,188C54,202 52,220 54,238C58,248 66,250 72,242C76,226 76,204 72,190C68,184 62,183 60,188Z' },
-  { m:'forearms',    d:'M54,256C48,276 44,296 44,312C46,324 54,326 60,318C64,300 66,278 66,260C62,252 56,250 54,256Z' },
-  { m:'obliques',    d:'M88,202C82,218 80,240 82,258C88,268 96,266 100,256C102,234 102,214 100,200C96,194 90,194 88,202Z' },
-  { m:'abductors',   d:'M77,256C71,264 69,277 73,288C81,292 90,286 92,275C92,265 85,254 77,256Z' },
-  { m:'quads',       d:['M72,276C66,302 66,336 70,368C77,382 86,380 90,366C92,332 90,300 86,276Z',
-                        'M90,278C86,304 86,338 90,370C96,380 103,376 105,362C107,330 105,302 103,276Z',
-                        'M107,296C105,320 105,348 109,370C115,380 118,374 118,360C118,336 116,312 113,294Z'] },
-  { m:'adductors',   d:'M110,266C114,284 117,308 115,330C111,340 106,338 105,326C105,302 107,282 107,266Z' },
-  { m:'calves',      d:'M80,412C76,434 77,462 82,482C89,490 96,484 96,470C96,446 91,422 88,410Z' }
+/* Zones — moitié gauche. e:[cx,cy,rx,ry] pour une ellipse, d:'…' pour un tracé. */
+const ZONES_FRONT_HALF = [
+  { m:'traps',       d:'M336,176C312,184 278,200 252,228C288,216 316,209 338,207Z' },
+  { m:'side_delts',  d:'M232,214C208,226 190,250 188,280C188,302 196,318 210,322C216,300 218,268 224,242C228,226 230,218 232,214Z' },
+  { m:'front_delts', d:'M262,214C232,222 202,246 196,278C194,304 208,322 230,324C252,322 266,300 270,272C272,246 268,226 262,214Z' },
+  { m:'chest',       d:'M352,202C322,204 288,214 266,236C252,254 250,282 262,298C292,310 332,306 352,300Z' },
+  { m:'biceps',      e:[185, 348, 30, 58] },
+  { m:'forearms',    e:[148, 472, 30, 68] },
+  { m:'obliques',    e:[256, 428, 22, 60] },
+  { m:'abductors',   e:[268, 524, 30, 38] },
+  { m:'quads',       e:[292, 672, 56, 112] },
+  { m:'adductors',   e:[330, 618, 24, 68] },
+  { m:'calves',      e:[284, 888, 30, 72] }
 ];
-/* Abdominaux : huit blocs distincts, centrés sur l'axe. */
-const MUSCLES_FRONT_CENTER = [
-  { m:'abs', r:[[104,178,14,21,4],[122,178,14,21,4],
-                [104,202,14,21,4],[122,202,14,21,4],
-                [104,226,14,21,4],[122,226,14,21,4],
-                [105,250,13,22,4],[122,250,13,22,4]] }
-];
-
-/* ---------------- Muscles, vue de dos ---------------- */
-const MUSCLES_BACK_HALF = [
-  /* Ordre = ordre de tracé : le dorsal passe sous le trapèze, comme en anatomie. */
-  { m:'lats',        d:'M118,172C104,160 86,158 76,172C72,197 80,227 94,247C106,259 116,263 119,265C119,231 119,197 118,172Z' },
-  { m:'mid_back',    d:'M114,150C105,147 98,152 96,163C98,176 103,188 111,195C115,185 115,162 114,150Z' },
-  { m:'traps',       d:'M118,80C102,84 84,96 70,108C86,113 99,128 106,148C112,165 116,180 118,196Z' },
-  { m:'side_delts',  d:'M58,118C50,126 46,140 47,156C52,164 58,162 61,154C62,140 61,126 58,118Z' },
-  { m:'rear_delts',  d:'M72,110C58,118 50,132 50,154C52,168 60,177 69,179C78,179 84,168 85,152C84,134 82,118 72,110Z' },
-  { m:'lower_back',  d:'M115,212C111,230 109,252 111,270C115,278 120,276 120,266L120,210Z' },
-  { m:'triceps',     d:'M58,188C52,202 50,222 52,240C56,250 64,252 70,244C74,226 74,204 70,190C66,184 60,183 58,188Z' },
-  { m:'forearms',    d:'M54,256C48,276 44,296 44,312C46,324 54,326 60,318C64,300 66,278 66,260C62,252 56,250 54,256Z' },
-  { m:'glutes',      d:'M119,266C104,264 88,274 81,290C79,308 85,324 98,332C109,338 119,334 119,324Z' },
-  { m:'abductors',   d:'M77,274C71,282 68,295 72,305C80,310 89,304 91,293C91,283 85,272 77,274Z' },
-  { m:'hamstrings',  d:['M78,338C72,360 72,388 77,408C84,418 92,414 94,402C96,376 94,352 89,336Z',
-                        'M96,334C94,358 94,386 99,408C106,418 113,414 113,402C115,376 111,352 108,332Z'] },
-  { m:'adductors',   d:'M111,336C115,352 117,372 115,388C111,396 107,392 107,382C107,362 109,346 109,334Z'},
-  { m:'calves',      d:['M79,416C74,436 74,462 79,480C86,488 92,482 92,470C92,450 89,430 86,414Z',
-                        'M95,414C93,438 93,464 98,480C105,488 111,482 111,470C111,448 106,426 103,412Z'] }
-];
-const MUSCLES_BACK_CENTER = [
-  { m:'neck', d:'M109,78C106,88 105,98 107,106C113,110 127,110 133,106C135,98 134,88 131,78Z' }
+const ZONES_FRONT_CENTER = [
+  { m:'neck', e:[360, 185, 36, 26] },
+  { m:'abs',  r:[[278,322,76,37,10],[366,322,76,37,10],
+                 [278,365,76,37,10],[366,365,76,37,10],
+                 [278,408,76,37,10],[366,408,76,37,10],
+                 [280,451,74,38,10],[366,451,74,38,10]] }
 ];
 
-/* ---------------- Traits de détail (non colorés) ---------------- */
-const DETAIL_FRONT_HALF = [
-  'M110,98C99,101 87,106 77,114',                 // clavicule
-  'M84,172l9,5', 'M82,184l10,5', 'M82,196l10,5',    // dentelé antérieur
-  'M64,152C68,162 70,171 70,180',                   // strie du deltoïde
-  'M77,392C87,398 98,398 107,392',                 // rotule
-  'M90,278C88,306 88,338 90,368',                   // séparation des quadriceps
-  'M88,132C98,138 108,144 117,151',                // fibres du pectoral
-  'M87,148C97,152 106,158 115,164',
-  'M57,134C61,145 63,156 63,168',                   // faisceaux du deltoïde
-  'M63,192C65,208 65,224 63,238',                   // chefs du biceps
-  'M55,264C57,281 57,296 55,310',                   // avant-bras
-  'M88,424C90,444 90,462 88,476',                   // jambier antérieur
-  'M99,364C101,373 102,381 102,389'                 // tendon rotulien
+/* Au dos, le dorsal est tracé avant le trapèze, comme en anatomie. */
+const ZONES_BACK_HALF = [
+  { m:'lats',        d:'M356,312C320,302 280,316 262,346C255,386 268,426 290,456C320,479 348,487 356,489Z' },
+  { m:'mid_back',    e:[322, 290, 34, 40] },
+  { m:'traps',       d:'M356,148C320,158 280,184 252,220C292,226 322,256 340,302C351,332 356,352 356,360Z' },
+  { m:'side_delts',  e:[198, 250, 30, 40] },
+  { m:'rear_delts',  e:[222, 256, 44, 52] },
+  { m:'lower_back',  e:[338, 448, 25, 44] },
+  { m:'triceps',     e:[188, 346, 32, 60] },
+  { m:'forearms',    e:[148, 478, 30, 68] },
+  { m:'glutes',      e:[310, 552, 48, 56] },
+  { m:'abductors',   e:[264, 500, 28, 36] },
+  { m:'hamstrings',  e:[300, 695, 52, 92] },
+  { m:'adductors',   e:[338, 620, 24, 60] },
+  { m:'calves',      e:[300, 862, 30, 88] }
 ];
-const DETAIL_FRONT_CENTER = ['M120,108L120,172', 'M120,178L120,272',
-  'M101,40C107,27 133,27 139,40', 'M105,60C111,71 129,71 135,60'];
-
-const DETAIL_BACK_HALF = [
-  'M112,154C102,156 96,162 94,170',                 // bord de l'omoplate
-  'M64,152C68,162 70,171 70,180',
-  'M77,392C87,397 98,397 107,392',                 // creux poplité
-  'M81,294C94,301 107,306 119,308',                 // pli fessier
-  'M110,98C112,114 114,131 116,149',                // fibres du trapèze
-  'M95,108C103,120 109,133 113,147',
-  'M84,180C95,195 106,210 117,223',                 // fibres du grand dorsal
-  'M82,202C93,214 104,225 117,237',
-  'M61,192C63,208 63,224 61,238',                   // chefs du triceps
-  'M99,280C103,294 105,308 103,322',               // grand fessier
-  'M95,340C97,364 97,388 95,407',                 // ischio-jambiers
-  'M94,418C96,440 96,462 94,478'                    // jumeaux
+const ZONES_BACK_CENTER = [
+  { m:'neck', e:[360, 160, 30, 26] }
 ];
-const DETAIL_BACK_CENTER = ['M120,86L120,306', 'M101,42C107,29 133,29 139,42'];
 
-/* ---------------- Échelle de chaleur (couleurs du logo) ---------------- */
+/* Échelle de chaleur, dérivée des couleurs du logo. */
 const HEAT_STOPS = [
-  [0.00, '#26314F'],
+  [0.00, '#28334F'],  // au repos
   [0.18, '#2B6BFF'],
   [0.42, '#22D3EE'],
   [0.62, '#FFC531'],
   [0.82, '#FF7A18'],
-  [1.00, '#FF2D8A']
+  [1.00, '#FF2D8A']   // très sollicité
 ];
+const BODY_REST = '#28334F';
 
 function hexToRgb(h) {
   return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
@@ -123,100 +88,86 @@ function svgEl(tag, attrs) {
   return el;
 }
 
-/** Un muscle = un ou plusieurs tracés (faisceaux) réunis dans un groupe. */
-function muscleShape(def) {
+/** Une zone = un groupe de formes partageant un muscle. */
+function zoneShape(def) {
   const g = svgEl('g', { 'data-m': def.m, class: 'muscle' });
-  const shapes = [];
-  if (def.d) (Array.isArray(def.d) ? def.d : [def.d]).forEach(d => shapes.push(svgEl('path', { d })));
-  if (def.r) def.r.forEach(([x, y, w, h, rx]) => shapes.push(svgEl('rect', { x, y, width: w, height: h, rx })));
-  shapes.forEach(s => g.appendChild(s));
+  if (def.d) g.appendChild(svgEl('path', { d: def.d }));
+  if (def.e) { const [cx, cy, rx, ry] = def.e; g.appendChild(svgEl('ellipse', { cx, cy, rx, ry })); }
+  if (def.r) def.r.forEach(([x, y, w, h, rx]) => g.appendChild(svgEl('rect', { x, y, width: w, height: h, rx })));
   const t = svgEl('title', {});
   t.textContent = muscleName(def.m);
   g.appendChild(t);
   return g;
 }
 
-function mirrored(node) {
-  const clone = node.cloneNode(true);
-  clone.setAttribute('transform', `translate(${BODY_W},0) scale(-1,1)`);
-  return clone;
-}
-
 /**
- * Dessine un corps.
+ * Construit une figure complète.
  * @param {'front'|'back'} view
  * @param {Object} heat  { muscleId: 0..1 }
- * @param {Object} opts  { uid, interactive, onPick }
+ * @param {Object} opts  { interactive, onPick }
+ * @returns {HTMLElement}
  */
 function buildBody(view, heat, opts = {}) {
-  const uid = opts.uid || ('b' + Math.random().toString(36).slice(2, 8));
   const front = view !== 'back';
-  const halves      = front ? MUSCLES_FRONT_HALF   : MUSCLES_BACK_HALF;
-  const centers     = front ? MUSCLES_FRONT_CENTER : MUSCLES_BACK_CENTER;
-  const detailHalf  = front ? DETAIL_FRONT_HALF    : DETAIL_BACK_HALF;
-  const detailMid   = front ? DETAIL_FRONT_CENTER  : DETAIL_BACK_CENTER;
+  const halves  = front ? ZONES_FRONT_HALF   : ZONES_BACK_HALF;
+  const centers = front ? ZONES_FRONT_CENTER : ZONES_BACK_CENTER;
+  const src = front ? BODY_IMG.front : BODY_IMG.back;
 
-  const svg = svgEl('svg', { viewBox: BODY_VIEWBOX, class: 'body-svg',
+  const fig = document.createElement('div');
+  fig.className = 'body-fig';
+
+  // Couche 1 : peinture des muscles, découpée par la silhouette de la planche
+  const paint = document.createElement('div');
+  paint.className = 'body-paint';
+  paint.style.webkitMaskImage = `url(${src})`;
+  paint.style.maskImage = `url(${src})`;
+
+  const svg = svgEl('svg', { viewBox: BODY_VIEWBOX, preserveAspectRatio: 'xMidYMid meet',
     'aria-label': front ? 'Vue de face' : 'Vue de dos' });
+  svg.appendChild(svgEl('rect', { x: 0, y: 0, width: BODY_W, height: BODY_H, fill: BODY_REST }));
 
-  const defs = svgEl('defs', {});
-  const clip = svgEl('clipPath', { id: uid + '-clip' });
-  clip.appendChild(svgEl('path', { d: BODY_OUTLINE }));
-  defs.appendChild(clip);
-  svg.appendChild(defs);
-
-  svg.appendChild(svgEl('path', { d: BODY_OUTLINE, class: 'body-fill' }));
-
-  const gm = svgEl('g', { 'clip-path': `url(#${uid}-clip)`, class: 'muscles' });
+  const gm = svgEl('g', { class: 'muscles' });
   const half = svgEl('g', {});
-  halves.forEach(def => half.appendChild(muscleShape(def)));
+  halves.forEach(def => half.appendChild(zoneShape(def)));
   gm.appendChild(half);
-  gm.appendChild(mirrored(half));
-  centers.forEach(def => gm.appendChild(muscleShape(def)));
+  const mirror = half.cloneNode(true);
+  mirror.setAttribute('transform', `translate(${BODY_W},0) scale(-1,1)`);
+  gm.appendChild(mirror);
+  centers.forEach(def => gm.appendChild(zoneShape(def)));
   svg.appendChild(gm);
+  paint.appendChild(svg);
+  fig.appendChild(paint);
 
-  const gd = svgEl('g', { class: 'body-detail', 'clip-path': `url(#${uid}-clip)` });
-  const dHalf = svgEl('g', {});
-  detailHalf.forEach(d => dHalf.appendChild(svgEl('path', { d })));
-  gd.appendChild(dHalf);
-  gd.appendChild(mirrored(dHalf));
-  detailMid.forEach(d => gd.appendChild(svgEl('path', { d })));
-  svg.appendChild(gd);
+  // Couche 2 : la planche anatomique, inversée pour ressortir sur fond sombre
+  const img = document.createElement('img');
+  img.className = 'body-lines';
+  img.src = src;
+  img.alt = front ? 'Vue de face' : 'Vue de dos';
+  img.decoding = 'async';
+  fig.appendChild(img);
 
-  // Galbe : ombre sur les flancs, simulant un éclairage frontal
-  const shade = svgEl('linearGradient', { id: uid + '-shade', x1: '0', y1: '0', x2: '1', y2: '0' });
-  [['0','.5'],['0.30','0'],['0.70','0'],['1','.5']].forEach(([o, op]) => {
-    shade.appendChild(svgEl('stop', { offset: o, 'stop-color': '#000', 'stop-opacity': op }));
-  });
-  defs.appendChild(shade);
-  const vol = svgEl('path', { d: BODY_OUTLINE, fill: `url(#${uid}-shade)`, class: 'body-volume' });
-  svg.appendChild(vol);
-
-  svg.appendChild(svgEl('path', { d: BODY_OUTLINE, class: 'body-stroke' }));
-
-  paintBody(svg, heat || {});
+  paintBody(fig, heat || {});
 
   if (opts.interactive) {
-    svg.classList.add('is-interactive');
-    svg.addEventListener('click', e => {
+    fig.classList.add('is-interactive');
+    fig.addEventListener('click', e => {
       const t = e.target.closest('[data-m]');
       if (t && opts.onPick) opts.onPick(t.getAttribute('data-m'));
     });
   }
-  return svg;
+  return fig;
 }
 
-/** Applique/rafraîchit la heatmap sur un SVG déjà construit. */
-function paintBody(svg, heat) {
-  svg.querySelectorAll('.muscle').forEach(el => {
+/** Applique/rafraîchit la heatmap sur une figure déjà construite. */
+function paintBody(fig, heat) {
+  fig.querySelectorAll('.muscle').forEach(el => {
     const v = heat[el.getAttribute('data-m')] || 0;
     el.style.fill = heatColor(v);
     el.classList.toggle('is-active', v > 0);
   });
 }
 
-/** Une seule vue à la fois, avec bascule Face / Dos : le corps occupe
-    toute la largeur, donc beaucoup plus de détail lisible. */
+/** Une seule vue à la fois, avec bascule Face / Dos. */
 function renderBodyView(container, heat, opts = {}) {
   const state = { view: opts.view || 'front' };
   container.innerHTML = '';
@@ -231,7 +182,7 @@ function renderBodyView(container, heat, opts = {}) {
 
   const draw = () => {
     stage.innerHTML = '';
-    stage.appendChild(buildBody(state.view, heat, { ...opts, uid: (opts.uid || 'b') + '-' + state.view }));
+    stage.appendChild(buildBody(state.view, heat, opts));
     [...tabs.children].forEach(b => b.classList.toggle('on', b.dataset.v === state.view));
   };
   [...tabs.children].forEach(b => b.onclick = () => { state.view = b.dataset.v; draw(); });
@@ -239,7 +190,7 @@ function renderBodyView(container, heat, opts = {}) {
   container.appendChild(tabs);
   container.appendChild(stage);
   draw();
-  return { redraw: (h) => { heat = h; draw(); } };
+  return { redraw: h => { heat = h; draw(); } };
 }
 
 /** Heatmap à partir d'une liste d'exercices (aperçu d'un programme). */
