@@ -87,10 +87,55 @@ function openSheet(title, html, onMount) {
   bg.innerHTML = `<div class="sheet"><div class="handle"></div>${title ? `<h3>${esc(title)}</h3>` : ''}<div class="sheet-body">${html}</div></div>`;
   bg.addEventListener('click', e => { if (e.target === bg) closeSheet(); });
   document.body.appendChild(bg);
+  enableSheetDrag(bg);
   if (onMount) onMount($('.sheet-body', bg));
   return bg;
 }
 function closeSheet() { const s = $('.sheet-bg'); if (s) s.remove(); }
+
+/** Glisser la feuille vers le bas pour la refermer (poignée ou haut de la feuille). */
+function enableSheetDrag(bg) {
+  const sheet = $('.sheet', bg);
+  if (!sheet) return;
+  let startY = 0, dy = 0, dragging = false;
+
+  const canStart = e => {
+    // On ne tire que depuis la poignée ou le haut, et seulement si la feuille est en haut de son défilement
+    const y = e.touches[0].clientY - sheet.getBoundingClientRect().top;
+    return sheet.scrollTop <= 0 && y < 90;
+  };
+
+  sheet.addEventListener('touchstart', e => {
+    if (!canStart(e)) return;
+    dragging = true; startY = e.touches[0].clientY; dy = 0;
+    sheet.style.transition = 'none';
+  }, { passive: true });
+
+  sheet.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    dy = e.touches[0].clientY - startY;
+    if (dy < 0) dy = 0;
+    sheet.style.transform = `translateY(${dy}px)`;
+    bg.style.background = `rgba(4,7,14,${Math.max(0.2, 0.72 - dy / 600)})`;
+  }, { passive: true });
+
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = 'transform .22s ease';
+    if (dy > 110) {                       // assez tiré : on ferme
+      sheet.style.transform = 'translateY(100%)';
+      bg.style.transition = 'opacity .2s ease';
+      bg.style.opacity = '0';
+      setTimeout(closeSheet, 200);
+    } else {                              // pas assez : la feuille remonte
+      sheet.style.transform = '';
+      bg.style.background = '';
+    }
+  };
+  sheet.addEventListener('touchend', end, { passive: true });
+  sheet.addEventListener('touchcancel', end, { passive: true });
+}
 
 function confirmSheet(title, msg, okLabel, onOk, danger) {
   openSheet(title, `

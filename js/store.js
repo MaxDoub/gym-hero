@@ -317,7 +317,7 @@ function startSession(programId, dateISO) {
     return ex.type === 'cardio'
       ? { exId: item.exId, name: ex.name, cardio: Object.assign({ durationMin: 15, incline: 0, speed: 6 }, item.cardio), note: item.note || '' }
       : { exId: item.exId, name: ex.name, restSec: item.restSec || DB.settings.restDefault,
-          sets: (item.sets || []).map(s => ({ reps: s.reps, weight: s.weight, done: false })), note: item.note || '' };
+          sets: (item.sets || []).map(s => ({ reps: s.reps, weight: s.weight, done: !!dateISO })), note: item.note || '' };
   });
   const date = dateISO || todayISO();
   DB.active = {

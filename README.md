@@ -95,6 +95,11 @@ Onglet **Régularité** ▸ touche le jour concerné ▸ *Noter une séance ce j
 Tu choisis le programme, tu ajustes charges et répétitions, puis **Enregistrer**.
 La date et la durée restent modifiables en haut de l'écran.
 
+Dans ce mode, **toutes les séries sont cochées d'avance** : tu déclares une séance
+déjà faite, tu décoches seulement ce que tu n'as pas fait. Seuls les exercices
+ayant au moins une série cochée sont enregistrés — l'app prévient avant de laisser
+un exercice de côté.
+
 Depuis l'historique, *Corriger cette séance* recharge une séance déjà enregistrée :
 elle est remplacée à l'identique (même date, même place), pas dupliquée.
 Les charges du programme ne sont ajustées que si la séance modifiée est bien la

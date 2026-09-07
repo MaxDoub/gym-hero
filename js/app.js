@@ -563,7 +563,7 @@ function renderSettings() {
     </div>
 
     <div class="card center tiny muted">
-      <img src="icons/icon-192.png" width="64" height="64" style="border-radius:16px;margin-bottom:8px" alt="">
+      <img src="icons/icon-192.png" width="64" height="64" style="border-radius:15px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto" alt="">
       <div><b style="color:var(--txt)">Gym Hero</b> · v1.0</div>
       <div>Fait pour la salle, pas pour le cloud.</div>
     </div>`;

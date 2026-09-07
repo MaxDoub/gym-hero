@@ -91,7 +91,8 @@ function renderSession() {
     const ex = getExercise(exId);
     DB.active.entries.push(ex.type === 'cardio'
       ? { exId, name: ex.name, cardio: { durationMin: 15, incline: 0, speed: 6 } }
-      : { exId, name: ex.name, restSec: DB.settings.restDefault, sets: sets(3, 12, 20).map(x => ({ ...x, done: false })) });
+      : { exId, name: ex.name, restSec: DB.settings.restDefault,
+          sets: sets(3, 12, 20).map(x => ({ ...x, done: !!(DB.active.past || DB.active.editingId) })) });
     save(); renderSession();
   });
   $('#sessNote', v).onchange = e => { DB.active.note = e.target.value; save(); };
@@ -284,6 +285,21 @@ function finishSessionFlow() {
       cancelSession(); renderAll(); go('home');
     }, true);
   }
+
+  // Seuls les exercices cochés sont conservés : on le dit avant, pas après.
+  const dropped = s.entries.filter(e => !e.cardio && !(e.sets || []).some(x => x.done));
+  if (dropped.length) {
+    return confirmSheet(
+      dropped.length === 1 ? 'Un exercice sans série cochée' : `${dropped.length} exercices sans série cochée`,
+      `${dropped.map(e => getExercise(e.exId).name).join(', ')} — aucune série n'est validée (✓). `
+      + `Ces exercices ne seront pas enregistrés. Coche les séries que tu as faites, ou continue pour les abandonner.`,
+      'Enregistrer sans eux', () => doFinishSession(), true);
+  }
+  doFinishSession();
+}
+
+function doFinishSession() {
+  const s = DB.active;
   stopRest();
   const wasPast = !!(s.past || s.editingId);
   const res = finishSession();
