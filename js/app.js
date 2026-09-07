@@ -333,13 +333,57 @@ function renderCalendar() {
   $('#calPrev', v).onclick = () => { calMonth = new Date(y, m - 1, 1); renderCalendar(); };
   $('#calNext', v).onclick = () => { calMonth = new Date(y, m + 1, 1); renderCalendar(); };
   $$('[data-sess]', v).forEach(el => el.onclick = () => sessionSheet(el.dataset.sess));
-  $$('[data-day]', v).forEach(el => el.onclick = () => {
-    const list = byDate[el.dataset.day];
-    if (list && list.length) sessionSheet(list[0].id);
-  });
+  $$('[data-day]', v).forEach(el => el.onclick = () => daySheet(el.dataset.day, byDate[el.dataset.day] || []));
 }
 
 /* ==================== FICHES ==================== */
+/** Ce qui a été fait un jour donné — et de quoi le compléter après coup. */
+function daySheet(dateISO, list) {
+  openSheet(fmtDate(dateISO, true), `
+    ${list.length ? `<div class="card flush">${list.map(x => `
+      <div class="list-item" data-sess="${x.id}">
+        <div class="emoji">${x.emoji || '🏋️'}</div>
+        <div class="grow"><b>${esc(x.programName)}</b>
+          <span>${fmtVolume(sessionVolume(x))} · ${(x.entries || []).length} exercices</span></div>
+        <span class="chev">›</span>
+      </div>`).join('')}</div>`
+      : `<p class="tiny muted" style="margin-top:0">Rien d'enregistré ce jour-là.</p>`}
+    <button class="btn primary block" id="dayAdd" style="margin-top:12px">
+      ＋ ${list.length ? 'Ajouter une autre séance' : 'Noter une séance ce jour-là'}
+    </button>
+  `, body => {
+    $$('[data-sess]', body).forEach(el => el.onclick = () => sessionSheet(el.dataset.sess));
+    $('#dayAdd', body).onclick = () => pickProgramForDate(dateISO);
+  });
+}
+
+/** Choix du programme pour une séance saisie a posteriori. */
+function pickProgramForDate(dateISO) {
+  openSheet(`Séance du ${fmtDate(dateISO)}`, `
+    <p class="tiny muted" style="margin-top:0">Quel programme as-tu fait ?
+    Tu pourras ensuite ajuster les charges, ajouter ou retirer des exercices.</p>
+    <div class="card flush">
+      ${DB.programs.map(p => `
+        <div class="list-item" data-prog="${p.id}">
+          <div class="emoji">${p.emoji || '🏋️'}</div>
+          <div class="grow"><b>${esc(p.name)}</b><span>${programSummary(p).exercises} exercices</span></div>
+          <span class="chev">›</span>
+        </div>`).join('')}
+      <div class="list-item" data-prog="">
+        <div class="emoji">⚡</div>
+        <div class="grow"><b>Séance libre</b><span>Je choisis les exercices</span></div>
+        <span class="chev">›</span>
+      </div>
+    </div>
+  `, body => {
+    $$('[data-prog]', body).forEach(el => el.onclick = () => {
+      closeSheet();
+      startSession(el.dataset.prog || null, dateISO);
+      go('session');
+      toast('Complète ta séance, puis enregistre-la', 'ok');
+    });
+  });
+}
 function sessionSheet(id) {
   const s = DB.sessions.find(x => x.id === id);
   if (!s) return;
@@ -357,9 +401,18 @@ function sessionSheet(id) {
     ${s.note ? `<div class="card tiny">📝 ${esc(s.note)}</div>` : ''}
     <div class="section-title">Muscles travaillés</div>
     <div class="bodies" id="shBodies"></div>
-    <button class="btn danger block" style="margin-top:16px" id="shDel">🗑 Supprimer cette séance</button>
+    <div class="row" style="gap:8px;margin-top:16px">
+      <button class="btn primary block" id="shEdit">✏️ Corriger cette séance</button>
+      <button class="btn danger" id="shDel">🗑</button>
+    </div>
   `, body => {
     renderBodyView($('#shBodies', body), normalize(volumeByMuscle([s])), { uid: 'sh' });
+    $('#shEdit', body).onclick = () => {
+      closeSheet();
+      editSession(id);
+      go('session');
+      toast('Modifie puis enregistre à nouveau', 'ok');
+    };
     $('#shDel', body).onclick = () => confirmSheet('Supprimer ?', 'Cette séance sera définitivement effacée.', 'Supprimer', () => {
       deleteSession(id); renderAll(); toast('Séance supprimée');
     }, true);
@@ -382,7 +435,10 @@ function exerciseSheet(exId) {
       <div class="stat accent"><b>${fmtNum(pr.e1rm)}</b><span>1RM estimé</span></div>
     </div>` : ''}
     ${hist.length > 1 ? `<div class="chart-box sm"><canvas id="exChart"></canvas></div>` : '<p class="tiny muted center">Pas encore assez d\'historique.</p>'}
-    <div class="section-title">Muscles ciblés</div>
+    <div class="section-title">Muscles ciblés
+      <button class="btn xs" id="exEditMuscles">✏️ Modifier</button>
+    </div>
+    ${muscleOverride(exId) ? '<p class="tiny muted" style="margin:0 0 8px">Muscles définis par toi.</p>' : ''}
     <div class="bodies" id="exBodies"></div>
     ${hist.length ? `<div class="section-title">Historique</div>
       <div class="card flush">${hist.slice().reverse().slice(0, 10).map(h => `
@@ -392,8 +448,52 @@ function exerciseSheet(exId) {
         </div>`).join('')}</div>` : ''}
   `, body => {
     renderBodyView($('#exBodies', body), heatFromExercises([ex]), { uid: 'ex' });
+    $('#exEditMuscles', body).onclick = () => muscleEditorSheet(exId);
     if (hist.length > 1) lineChart('exChart', hist.map(h => fmtDate(h.date)),
       [{ label: 'Charge', data: hist.map(h => h.top), color: '#FFC531' }]);
+  });
+}
+
+/* ---------------- Éditeur des muscles d'un exercice ---------------- */
+function muscleEditorSheet(exId) {
+  const ex = getExercise(exId);
+  const sel = {
+    primary: [...(ex.primary || [])].filter(m => m !== 'cardio'),
+    secondary: [...(ex.secondary || [])].filter(m => m !== 'cardio')
+  };
+
+  openSheet(`Muscles — ${ex.name}`, `
+    <p class="tiny muted" style="margin-top:0">
+      Touche une zone du corps : elle passe en <b style="color:#FF2D8A">principal</b>,
+      puis en <b style="color:#22D3EE">secondaire</b>, puis s'éteint.
+      Bascule Face / Dos pour atteindre tous les muscles.
+    </p>
+    <div class="bodies" id="meBody"></div>
+    <div class="row wrap" style="gap:6px;margin-top:12px" id="meList"></div>
+    <div class="row" style="gap:8px;margin-top:16px">
+      <button class="btn ghost" id="meReset">↺ Par défaut</button>
+      <button class="btn primary block" id="meSave">Enregistrer</button>
+    </div>
+  `, body => {
+    const list = $('#meList', body);
+    const drawList = () => {
+      list.innerHTML = sel.primary.map(m => `<span class="chip pink">${esc(muscleName(m))}</span>`).join('')
+        + sel.secondary.map(m => `<span class="chip cyan">${esc(muscleName(m))}</span>`).join('')
+        || '<span class="tiny muted">Aucun muscle sélectionné.</span>';
+    };
+    renderMusclePicker($('#meBody', body), sel, drawList);
+    drawList();
+
+    $('#meSave', body).onclick = () => {
+      setMuscleOverride(exId, sel.primary, sel.secondary);
+      closeSheet(); renderAll();
+      toast('Muscles enregistrés 💪', 'ok');
+    };
+    $('#meReset', body).onclick = () => {
+      clearMuscleOverride(exId);
+      closeSheet(); renderAll();
+      toast('Muscles remis par défaut');
+    };
   });
 }
 
@@ -452,7 +552,7 @@ function renderSettings() {
     </div>
 
     <div class="card center tiny muted">
-      <img src="icons/icon.svg" width="52" height="52" style="border-radius:15px;margin-bottom:8px" alt="">
+      <img src="icons/icon-192.png" width="64" height="64" style="border-radius:16px;margin-bottom:8px" alt="">
       <div><b style="color:var(--txt)">Gym Hero</b> · v1.0</div>
       <div>Fait pour la salle, pas pour le cloud.</div>
     </div>`;

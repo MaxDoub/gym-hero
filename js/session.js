@@ -46,18 +46,26 @@ function renderSession() {
   const allSets = s.entries.reduce((t, e) => t + (e.sets || []).length, 0);
   const vol = sessionVolume(s);
 
+  const past = !!(s.past || s.editingId);
+
   v.innerHTML = `
-    <div class="hero" style="background:${s.emoji ? 'var(--grad)' : 'var(--grad)'}">
+    <div class="hero">
       <div class="row between">
         <div><h2>${s.emoji || '⚡'} ${esc(s.programName)}</h2>
-          <p>${fmtDate(s.date, true)} · <span id="sessClock">${fmtDur(elapsed)}</span></p></div>
+          <p>${past ? (s.editingId ? 'Correction · ' : 'Saisie a posteriori · ') + fmtDate(s.date, true)
+                    : fmtDate(s.date, true) + ' · <span id="sessClock">' + fmtDur(elapsed) + '</span>'}</p></div>
         <div style="text-align:right">
           <b style="font-size:22px">${doneSets}/${allSets}</b>
           <div class="tiny" style="opacity:.85">séries</div>
         </div>
       </div>
+      ${past ? `
+        <div class="row" style="gap:8px;margin-bottom:10px">
+          <input type="date" id="sessDate" value="${s.date}" style="flex:2;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff">
+          <input type="number" id="sessDur" placeholder="min" value="${Math.round((s.durationSec || 0) / 60) || ''}" style="flex:1;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff;text-align:center">
+        </div>` : ''}
       <div class="row" style="gap:8px">
-        <button class="btn solid grow" id="sessFinish" style="flex:1">✅ Terminer</button>
+        <button class="btn solid grow" id="sessFinish" style="flex:1">${past ? '💾 Enregistrer' : '✅ Terminer'}</button>
         <button class="btn" id="sessAdd">➕ Exercice</button>
         <button class="btn" id="sessCancel">✕</button>
       </div>
@@ -75,9 +83,10 @@ function renderSession() {
   renderBodyView($('#sessBodies', v), normalize(volumeByMuscle([s])), { uid: 'ss' });
 
   $('#sessFinish', v).onclick = finishSessionFlow;
-  $('#sessCancel', v).onclick = () => confirmSheet('Abandonner ?', 'La séance en cours sera perdue.', 'Abandonner', () => {
-    cancelSession(); renderAll(); toast('Séance annulée');
-  }, true);
+  $('#sessCancel', v).onclick = () => confirmSheet(
+    past ? 'Abandonner les modifications ?' : 'Abandonner ?',
+    past ? 'La séance enregistrée restera telle quelle.' : 'La séance en cours sera perdue.',
+    'Abandonner', () => { cancelSession(); renderAll(); go(past ? 'calendar' : 'home'); toast('Modifications abandonnées'); }, true);
   $('#sessAdd', v).onclick = () => pickExercise(exId => {
     const ex = getExercise(exId);
     DB.active.entries.push(ex.type === 'cardio'
@@ -86,8 +95,19 @@ function renderSession() {
     save(); renderSession();
   });
   $('#sessNote', v).onchange = e => { DB.active.note = e.target.value; save(); };
+  if (past) {
+    $('#sessDate', v).onchange = e => {
+      DB.active.date = e.target.value || DB.active.date;
+      DB.active.past = DB.active.date !== todayISO();
+      save(); renderSession();
+    };
+    $('#sessDur', v).onchange = e => {
+      DB.active.durationSec = (Number(e.target.value) || 0) * 60; save();
+    };
+  }
 
   clearInterval(sessionTick);
+  if (past) return;
   sessionTick = setInterval(() => {
     const el = $('#sessClock');
     if (!el || !DB.active) return clearInterval(sessionTick);
@@ -126,7 +146,7 @@ function drawSessionList() {
           <div class="emoji">${done === entry.sets.length ? '✅' : '🏋️'}</div>
           <div class="grow">
             <b>${esc(ex.name)}</b>
-            <div class="muscles">${esc(muscleLine(ex))}</div>
+            <div class="muscles is-editable" data-muscles="${entry.exId}">${esc(muscleLine(ex))} ✏️</div>
           </div>
           <button class="btn xs" data-info="${entry.exId}">👁</button>
           <button class="btn xs danger" data-rme="${ei}">✕</button>
@@ -190,6 +210,7 @@ function drawSessionList() {
     s.entries.splice(+b.dataset.rme, 1); save(); renderSession();
   });
   $$('[data-info]', box).forEach(b => b.onclick = () => exerciseSheet(b.dataset.info));
+  $$('[data-muscles]', box).forEach(el => el.onclick = () => muscleEditorSheet(el.dataset.muscles));
 }
 
 function refreshSessionHeader() {
@@ -264,9 +285,10 @@ function finishSessionFlow() {
     }, true);
   }
   stopRest();
+  const wasPast = !!(s.past || s.editingId);
   const res = finishSession();
   renderAll();
-  go('home');
+  go(wasPast ? 'calendar' : 'home');
   showSessionSummary(res.session, res.changes);
 }
 
@@ -275,9 +297,9 @@ function showSessionSummary(sess, changes) {
   const top = Object.entries(volumeByMuscle([sess]))
     .filter(([m]) => m !== 'cardio')
     .sort((a, b) => b[1] - a[1]).slice(0, 4).map(([m]) => muscleName(m));
-  openSheet('Séance terminée 🎉', `
+  openSheet(sess.date === todayISO() ? 'Séance terminée 🎉' : `Séance du ${fmtDate(sess.date)} enregistrée ✅`, `
     <div class="grid g3" style="margin-bottom:14px">
-      <div class="stat accent"><b>${fmtDur(sess.durationSec)}</b><span>durée</span></div>
+      <div class="stat accent"><b>${sess.durationSec ? fmtDur(sess.durationSec) : '—'}</b><span>durée</span></div>
       <div class="stat"><b>${sess.entries.length}</b><span>exercices</span></div>
       <div class="stat warm"><b>${fmtVolume(sess.volume)}</b><span>volume</span></div>
     </div>

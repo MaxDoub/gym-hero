@@ -1,14 +1,14 @@
 /* Gym Hero — service worker : l'app fonctionne intégralement hors ligne */
-const CACHE = 'gym-hero-v3';
+const CACHE = 'gym-hero-v4';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest',
-  './css/style.css',
-  './js/muscles.js', './js/exercises.js', './js/anatomy.js',
-  './js/store.js', './js/ui.js', './js/programs.js', './js/session.js', './js/app.js',
+  './css/style.css?v=4',
+  './js/muscles.js?v=4', './js/exercises.js?v=4', './js/anatomy.js?v=4',
+  './js/store.js?v=4', './js/ui.js?v=4', './js/programs.js?v=4', './js/session.js?v=4', './js/app.js?v=4',
   './assets/vendor/chart.umd.min.js',
-  './icons/icon.svg', './assets/logo.svg',
   './assets/body-front.png', './assets/body-back.png',
-  './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'
+  './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png',
+  './icons/icon-120.png', './icons/icon-152.png', './icons/icon-167.png', './icons/icon-180.png'
 ];
 
 self.addEventListener('install', e => {

@@ -31,6 +31,7 @@ function load() {
   DB.programs = DB.programs || [];
   DB.sessions = DB.sessions || [];
   DB.customExercises = DB.customExercises || [];
+  DB.muscleOverrides = DB.muscleOverrides || {};
   return DB;
 }
 function save() {
@@ -39,8 +40,33 @@ function save() {
 }
 
 /* ---------------- Exercices ---------------- */
-function allExercises() { return EXERCISE_LIBRARY.concat(DB.customExercises); }
-function getExercise(id) { return allExercises().find(e => e.id === id) || { id, name: id, type: 'strength', primary: [], secondary: [], eq: '' }; }
+/** Muscles redéfinis à la main par l'utilisateur, par exercice. */
+function muscleOverride(id) { return (DB.muscleOverrides || {})[id] || null; }
+
+function withOverride(ex) {
+  const o = muscleOverride(ex.id);
+  return o ? Object.assign({}, ex, { primary: o.primary || [], secondary: o.secondary || [] }) : ex;
+}
+function allExercises() {
+  return EXERCISE_LIBRARY.concat(DB.customExercises).map(withOverride);
+}
+function getExercise(id) {
+  const base = EXERCISE_LIBRARY.concat(DB.customExercises).find(e => e.id === id)
+    || { id, name: id, type: 'strength', primary: [], secondary: [], eq: '' };
+  return withOverride(base);
+}
+
+/** Enregistre (ou efface) les muscles choisis pour un exercice. */
+function setMuscleOverride(id, primary, secondary) {
+  DB.muscleOverrides = DB.muscleOverrides || {};
+  if (!primary.length && !secondary.length) delete DB.muscleOverrides[id];
+  else DB.muscleOverrides[id] = { primary, secondary };
+  save();
+}
+function clearMuscleOverride(id) {
+  if (DB.muscleOverrides) delete DB.muscleOverrides[id];
+  save();
+}
 
 /* ---------------- Seed ---------------- */
 function sets(n, reps, weight, firstWeight) {
@@ -53,6 +79,7 @@ function seed() {
     v: 1,
     settings: Object.assign({}, DEFAULT_SETTINGS),
     customExercises: [],
+    muscleOverrides: {},
     sessions: [],
     active: null,
     programs: [
@@ -264,7 +291,7 @@ function applyProgression(session) {
 }
 
 /* ---------------- Séances ---------------- */
-function startSession(programId) {
+function startSession(programId, dateISO) {
   const prog = DB.programs.find(p => p.id === programId);
   const entries = (prog ? prog.items : []).map(item => {
     const ex = getExercise(item.exId);
@@ -273,8 +300,10 @@ function startSession(programId) {
       : { exId: item.exId, name: ex.name, restSec: item.restSec || DB.settings.restDefault,
           sets: (item.sets || []).map(s => ({ reps: s.reps, weight: s.weight, done: false })), note: item.note || '' };
   });
+  const date = dateISO || todayISO();
   DB.active = {
-    id: uid(), startedAt: Date.now(), date: todayISO(),
+    id: uid(), startedAt: Date.now(), date,
+    past: date !== todayISO(),
     programId: prog ? prog.id : null, programName: prog ? prog.name : 'Séance libre',
     emoji: prog ? prog.emoji : '⚡', entries, note: ''
   };
@@ -285,16 +314,42 @@ function finishSession() {
   const s = DB.active;
   if (!s) return null;
   s.endedAt = Date.now();
-  s.durationSec = Math.round((s.endedAt - s.startedAt) / 1000);
+  s.durationSec = s.past ? (s.durationSec || 0) : Math.round((s.endedAt - s.startedAt) / 1000);
   s.entries = s.entries.filter(e => e.cardio || (e.sets || []).some(x => x.done));
   s.volume = sessionVolume(s);
-  DB.sessions.push(s);
+
+  if (s.editingId) {
+    const i = DB.sessions.findIndex(x => x.id === s.editingId);
+    s.id = s.editingId;
+    delete s.editingId;
+    if (i >= 0) DB.sessions[i] = s; else DB.sessions.push(s);
+  } else {
+    DB.sessions.push(s);
+  }
+  DB.sessions.sort((a, b) => (a.date < b.date ? -1 : 1));
   DB.active = null;
-  const changes = applyProgression(s);
+
+  // Les charges ne sont ajustées que si c'est bien la séance la plus récente
+  const isLatest = !DB.sessions.some(x => x.id !== s.id && x.date > s.date);
+  const changes = isLatest ? applyProgression(s) : [];
   save();
   return { session: s, changes };
 }
 function cancelSession() { DB.active = null; save(); }
+
+/** Recharge une séance enregistrée dans l'éditeur pour la corriger. */
+function editSession(id) {
+  const orig = DB.sessions.find(s => s.id === id);
+  if (!orig) return null;
+  const copy = JSON.parse(JSON.stringify(orig));
+  copy.entries.forEach(e => (e.sets || []).forEach(x => { if (x.done === undefined) x.done = true; }));
+  copy.editingId = id;
+  copy.past = copy.date !== todayISO();
+  copy.startedAt = copy.startedAt || Date.now();
+  DB.active = copy;
+  save();
+  return copy;
+}
 function deleteSession(id) { DB.sessions = DB.sessions.filter(s => s.id !== id); save(); }
 
 /* ---------------- Sauvegarde ---------------- */

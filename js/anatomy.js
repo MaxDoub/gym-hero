@@ -190,7 +190,49 @@ function renderBodyView(container, heat, opts = {}) {
   container.appendChild(tabs);
   container.appendChild(stage);
   draw();
-  return { redraw: h => { heat = h; draw(); } };
+  return {
+    /** Change les couleurs sans reconstruire la figure (édition fluide). */
+    repaint: h => { heat = h; const fig = stage.firstChild; if (fig) paintBody(fig, h); },
+    redraw:  h => { heat = h; draw(); },
+    view:    () => state.view
+  };
+}
+
+/* ---------------- Choix des muscles d'un exercice ----------------
+   Toucher une zone la fait passer de « rien » à « principal », puis
+   « secondaire », puis de nouveau « rien ».                        */
+const PICK_PRIMARY = 1, PICK_SECONDARY = 0.45;
+
+function musclePickerHeat(sel) {
+  const h = {};
+  sel.secondary.forEach(m => { h[m] = PICK_SECONDARY; });
+  sel.primary.forEach(m => { h[m] = PICK_PRIMARY; });
+  return h;
+}
+
+/**
+ * Corps éditable : renvoie un contrôleur { selection }.
+ * @param {HTMLElement} container
+ * @param {Object} sel  { primary:[], secondary:[] } — modifié en place
+ * @param {Function} onChange  appelé après chaque touche
+ */
+function renderMusclePicker(container, sel, onChange) {
+  const cycle = m => {
+    const iP = sel.primary.indexOf(m), iS = sel.secondary.indexOf(m);
+    if (iP >= 0) { sel.primary.splice(iP, 1); sel.secondary.push(m); }
+    else if (iS >= 0) { sel.secondary.splice(iS, 1); }
+    else { sel.primary.push(m); }
+  };
+  const ctrl = renderBodyView(container, musclePickerHeat(sel), {
+    uid: 'pick', interactive: true,
+    onPick: m => {
+      if (m === 'cardio') return;
+      cycle(m);
+      ctrl.repaint(musclePickerHeat(sel));
+      if (onChange) onChange(sel);
+    }
+  });
+  return ctrl;
 }
 
 /** Heatmap à partir d'une liste d'exercices (aperçu d'un programme). */

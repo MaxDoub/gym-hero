@@ -57,20 +57,23 @@ sont à recaler.
 
 ---
 
+## Mettre à jour l'app publiée
+
+Les fichiers sont appelés avec un numéro de version (`js/app.js?v=4`). À chaque
+publication, incrémente ce numéro **dans `index.html` et dans `sw.js`**, ainsi
+que `CACHE` dans `sw.js` : sans ça, navigateurs et téléphones déjà installés
+continuent de servir l'ancienne version depuis leur cache.
+
+---
+
 ## Mettre ton vrai logo
 
-Les icônes actuelles sont une **recréation vectorielle** de ton logo (`assets/logo.svg`).
-Pour utiliser le fichier original :
+L'icône d'origine est en place, en 8 tailles dans `icons/`, et s'affiche à droite
+de l'en-tête ainsi que dans les Paramètres.
 
-1. Ouvrir `tools/icons.html` dans un navigateur.
-2. Déposer ton PNG carré (1024×1024 de préférence).
-3. Télécharger les 4 fichiers générés et les placer dans `icons/` :
-   `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`.
-4. Pour que le logo change aussi **dans** l'app (en-tête et écran Paramètres),
-   remplacer `icons/icon.svg` par ton image et ajuster les deux balises `<img src="icons/icon.svg">`.
-
-Après remplacement, incrémenter `CACHE` dans `sw.js` (`gym-hero-v1` → `v2`)
-pour forcer la mise à jour du cache hors ligne.
+Pour en changer : `tools/icons.html` régénère toutes les tailles à partir d'un
+PNG carré (1024×1024 de préférence), à replacer dans `icons/`. Incrémente ensuite
+`CACHE` dans `sw.js`.
 
 ---
 
@@ -83,8 +86,28 @@ pour forcer la mise à jour du cache hors ligne.
 | **Séance** | Exécution guidée : cases à cocher, chrono de repos, ajout/retrait d'exercice à la volée, détection de record en direct |
 | **Progrès** | Courbes de charge et de 1RM estimé, volume par séance, volume par groupe musculaire, tous les records |
 | **Anatomie** | Planche anatomique face **ou** dos (bascule par onglet), muscles colorés selon le volume travaillé (7 j / 30 j / tout), muscles négligés |
-| **Régularité** | Calendrier mensuel, 6 derniers mois en damier, séries de semaines consécutives, historique |
+| **Régularité** | Calendrier mensuel, 6 derniers mois en damier, séries de semaines consécutives, historique. **Touche un jour pour y noter une séance après coup, ou corriger une séance passée** |
 | **Paramètres** | Objectif hebdo, repos par défaut, progression auto, son/vibration, export/import JSON |
+
+### Noter une séance après coup
+
+Onglet **Régularité** ▸ touche le jour concerné ▸ *Noter une séance ce jour-là*.
+Tu choisis le programme, tu ajustes charges et répétitions, puis **Enregistrer**.
+La date et la durée restent modifiables en haut de l'écran.
+
+Depuis l'historique, *Corriger cette séance* recharge une séance déjà enregistrée :
+elle est remplacée à l'identique (même date, même place), pas dupliquée.
+Les charges du programme ne sont ajustées que si la séance modifiée est bien la
+plus récente — corriger une vieille séance ne dérègle donc pas ta progression.
+
+### Définir toi-même les muscles d'un exercice
+
+Sur la fiche d'un exercice (ou en touchant la ligne des muscles pendant une
+séance), bouton **Modifier** : touche une zone du corps pour la passer en
+**principal**, puis en **secondaire**, puis l'éteindre. Bascule Face / Dos pour
+atteindre le dos. Ton choix remplace le mapping d'origine et se répercute
+partout — anatomie, volumes par groupe, muscles négligés, résumé de séance.
+*Par défaut* rétablit le mapping fourni.
 
 ### Progression automatique des charges
 
