@@ -304,6 +304,7 @@ function showSessionSummary(sess, changes) {
       <div class="stat warm"><b>${fmtVolume(sess.volume)}</b><span>volume</span></div>
     </div>
     <p class="tiny muted">Muscles principaux : ${esc(top.join(', ') || '—')}</p>
+    ${cardioMinutes([sess]) ? `<div class="row wrap" style="gap:6px;margin-bottom:10px"><span class="chip pink">❤️ ${cardioMinutes([sess])} min de cardio</span></div>` : ''}
     <div class="bodies" id="sumBodies"></div>
     ${changes.length ? `
       <div class="section-title" style="margin-top:16px">Charges ajustées pour la prochaine fois</div>

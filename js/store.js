@@ -137,16 +137,32 @@ function volumeByMuscle(sessions) {
     const w = exerciseMuscleWeights(ex);
     let vol = entryVolume(entry);
     if (entry.cardio) vol = (Number(entry.cardio.durationMin) || 0) * 60; // équivalence cardio
-    for (const m in w) out[m] = (out[m] || 0) + vol * w[m];
+    for (const m in w) {
+      if (m === 'cardio') {
+        // Le cardio se compte en minutes, pas en kilos.
+        out.cardio = (out.cardio || 0) + (entry.cardio ? (Number(entry.cardio.durationMin) || 0) : 2);
+      } else {
+        out[m] = (out[m] || 0) + vol * w[m];
+      }
+    }
   }));
   return out;
 }
+/** Minutes de cardio cumulées sur une liste de séances. */
+function cardioMinutes(sessions) {
+  return sessions.reduce((t, sess) => t + (sess.entries || [])
+    .reduce((x, e) => x + (e.cardio ? (Number(e.cardio.durationMin) || 0) : 0), 0), 0);
+}
+
 /** Normalise un dict de volumes en 0→1 pour la heatmap. */
+/** 0→1 pour la heatmap. Le cardio a sa propre échelle : 30 min = plein. */
+const CARDIO_FULL_MIN = 30;
 function normalize(dict) {
-  const max = Math.max(0, ...Object.values(dict));
   const out = {};
-  if (!max) return out;
-  for (const k in dict) out[k] = Math.pow(dict[k] / max, 0.65); // racine douce : les petits volumes restent visibles
+  const others = Object.entries(dict).filter(([k]) => k !== 'cardio');
+  const max = Math.max(0, ...others.map(e => e[1]));
+  if (max) others.forEach(([k, v]) => { out[k] = Math.pow(v / max, 0.65); }); // racine douce : les petits volumes restent visibles
+  if (dict.cardio) out.cardio = Math.min(1, dict.cardio / CARDIO_FULL_MIN);
   return out;
 }
 
@@ -172,7 +188,10 @@ function stats() {
   DB.sessions.forEach(s => (s.entries || []).forEach(e => exSet.add(e.exId)));
   const last = DB.sessions.slice().sort((a, b) => (a.date < b.date ? 1 : -1))[0] || null;
   const st = weekStreak();
-  return { total: DB.sessions.length, week, month, year, volume, exercises: exSet.size, last, streak: st.current, bestStreak: st.best };
+  return { total: DB.sessions.length, week, month, year, volume, exercises: exSet.size, last,
+           streak: st.current, bestStreak: st.best,
+           cardioWeek: cardioMinutes(sessionsSince(startOfWeek(now))),
+           cardioTotal: cardioMinutes(DB.sessions) };
 }
 
 /** Séries de semaines consécutives contenant au moins une séance. */

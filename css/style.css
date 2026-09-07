@@ -228,6 +228,9 @@ main{padding:4px 16px 28px;max-width:760px;margin:0 auto}
 .muscle{transition:fill .35s ease}
 .muscle path,.muscle ellipse,.muscle rect{fill:inherit}
 .is-interactive .muscle{cursor:pointer}
+/* Le cœur reste discret hors cardio, et visible pendant l'édition */
+.muscle[data-m="cardio"]{fill-opacity:0}
+.is-picker .muscle[data-m="cardio"]{fill-opacity:.4}
 .heat-legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted2);margin-top:8px}
 .heat-legend .bar{
   flex:1;height:8px;border-radius:99px;

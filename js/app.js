@@ -70,6 +70,9 @@ function renderHome() {
       <div class="row between tiny muted" style="margin-top:10px">
         <span>Volume cette semaine</span><b style="color:var(--txt)">${fmtVolume(weekVol)}</b>
       </div>
+      ${s.cardioWeek ? `<div class="row between tiny muted" style="margin-top:4px">
+        <span>❤️ Cardio cette semaine</span><b style="color:var(--txt)">${s.cardioWeek} min</b>
+      </div>` : ''}
     </div>
 
     <div class="section-title">Dernière activité</div>
@@ -203,8 +206,9 @@ function renderAnatomy() {
   const raw = volumeByMuscle(sess);
   const heat = normalize(raw);
   const ranked = Object.entries(raw).filter(([m]) => m !== 'cardio').sort((a, b) => b[1] - a[1]);
+  const cardioMin = cardioMinutes(sess);
   const worked = new Set(ranked.map(r => r[0]));
-  const neglected = MUSCLE_IDS.filter(m => m !== 'cardio' && !worked.has(m));
+  const neglected = MUSCLE_IDS.filter(m => !worked.has(m));
 
   v.innerHTML = `
     <div class="section-title">Muscles sollicités
@@ -220,11 +224,18 @@ function renderAnatomy() {
     </div>
 
     <div class="section-title">Classement (${sess.length} séance${sess.length > 1 ? 's' : ''})</div>
-    <div class="card">${ranked.length ? ranked.slice(0, 12).map(([m, val]) => `
+    <div class="card">
+      ${cardioMin ? `
+        <div class="vbar" data-m="cardio">
+          <div class="lbl"><span>❤️ Cardio</span><b class="muted">${cardioMin} min</b></div>
+          <div class="track"><div class="fill" style="width:${Math.min(100, cardioMin / 30 * 100)}%;background:var(--grad-warm)"></div></div>
+        </div>
+        <div class="divider" style="margin:10px 0"></div>` : ''}
+      ${ranked.length ? ranked.slice(0, 12).map(([m, val]) => `
       <div class="vbar" data-m="${m}">
         <div class="lbl"><span>${esc(muscleName(m))}</span><b class="muted">${fmtVolume(val)}</b></div>
         <div class="track"><div class="fill" style="width:${val / ranked[0][1] * 100}%"></div></div>
-      </div>`).join('') : '<p class="tiny muted center">Aucune séance sur cette période.</p>'}</div>
+      </div>`).join('') : '<p class="tiny muted center">Aucun exercice de musculation sur cette période.</p>'}</div>
 
     ${neglected.length ? `
       <div class="section-title">Muscles négligés</div>
@@ -254,7 +265,7 @@ function muscleSheet(mId) {
 
   openSheet(muscleName(mId), `
     <div class="grid g2" style="margin-bottom:14px">
-      <div class="stat accent"><b>${fmtVolume(vol30)}</b><span>volume 30 j</span></div>
+      <div class="stat accent"><b>${mId === 'cardio' ? cardioMinutes(sessionsInLastDays(30)) + ' min' : fmtVolume(vol30)}</b><span>${mId === 'cardio' ? 'cardio 30 j' : 'volume 30 j'}</span></div>
       <div class="stat"><b>${lastDate ? relDate(lastDate) : '—'}</b><span>dernière fois</span></div>
     </div>
     <div class="section-title">Exercices principaux</div>

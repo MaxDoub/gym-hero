@@ -28,6 +28,8 @@ const ZONES_FRONT_HALF = [
 ];
 const ZONES_FRONT_CENTER = [
   { m:'neck', e:[360, 185, 36, 26] },
+  /* Le cœur : n'apparaît que si la séance contient du cardio. */
+  { m:'cardio', d:'M372,300C346,280 338,256 350,242C360,231 371,236 377,247C383,236 394,232 404,243C416,257 408,280 382,300Z' },
   { m:'abs',  r:[[278,322,76,37,10],[366,322,76,37,10],
                  [278,365,76,37,10],[366,365,76,37,10],
                  [278,408,76,37,10],[366,408,76,37,10],
@@ -148,6 +150,7 @@ function buildBody(view, heat, opts = {}) {
 
   paintBody(fig, heat || {});
 
+  if (opts.picker) fig.classList.add('is-picker');
   if (opts.interactive) {
     fig.classList.add('is-interactive');
     fig.addEventListener('click', e => {
@@ -161,8 +164,11 @@ function buildBody(view, heat, opts = {}) {
 /** Applique/rafraîchit la heatmap sur une figure déjà construite. */
 function paintBody(fig, heat) {
   fig.querySelectorAll('.muscle').forEach(el => {
-    const v = heat[el.getAttribute('data-m')] || 0;
+    const m = el.getAttribute('data-m');
+    const v = heat[m] || 0;
     el.style.fill = heatColor(v);
+    // Le cœur ne s'affiche que s'il y a eu du cardio (ou en mode édition).
+    el.style.fillOpacity = (m === 'cardio' && !v) ? '' : '1';
     el.classList.toggle('is-active', v > 0);
   });
 }
@@ -224,9 +230,8 @@ function renderMusclePicker(container, sel, onChange) {
     else { sel.primary.push(m); }
   };
   const ctrl = renderBodyView(container, musclePickerHeat(sel), {
-    uid: 'pick', interactive: true,
+    uid: 'pick', interactive: true, picker: true,
     onPick: m => {
-      if (m === 'cardio') return;
       cycle(m);
       ctrl.repaint(musclePickerHeat(sel));
       if (onChange) onChange(sel);

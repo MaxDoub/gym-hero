@@ -100,6 +100,18 @@ elle est remplacée à l'identique (même date, même place), pas dupliquée.
 Les charges du programme ne sont ajustées que si la séance modifiée est bien la
 plus récente — corriger une vieille séance ne dérègle donc pas ta progression.
 
+### Le cardio
+
+Tapis, vélo, elliptique, rameur, escalier et corde à sauter comptent comme
+**cardio** : un cœur s'allume au centre du torse sur la vue de face, et les
+minutes apparaissent en tête du classement de l'onglet Anatomie, dans l'objectif
+de la semaine et dans le résumé de fin de séance.
+
+Le cardio a sa propre échelle — 30 minutes remplissent la jauge — parce que
+comparer des minutes à des kilos soulevés n'aurait aucun sens. Le cœur reste
+invisible tant qu'aucun cardio n'a été fait. Les muscles secondaires de ces
+exercices (quadriceps, mollets…) continuent d'être comptés normalement.
+
 ### Définir toi-même les muscles d'un exercice
 
 Sur la fiche d'un exercice (ou en touchant la ligne des muscles pendant une
