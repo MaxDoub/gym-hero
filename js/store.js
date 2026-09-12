@@ -300,7 +300,9 @@ function applyProgression(session) {
     if (!done.length) return;
 
     // 1) On mémorise les charges réellement utilisées.
-    item.sets = done.map(s => ({ reps: Number(s.reps) || 0, weight: Number(s.weight) || 0 }));
+    item.sets = done.map(s => ({ reps: Number(s.reps) || 0, weight: Number(s.weight) || 0,
+                                 drop: s.drop || undefined, amrap: s.amrap || undefined }));
+    item.superset = !!entry.superset;
 
     // 2) Toutes les séries au moins à l'objectif de reps → on monte la charge.
     if (DB.settings.autoProgress) {
@@ -328,7 +330,10 @@ function startSession(programId, dateISO) {
     return ex.type === 'cardio'
       ? { exId: item.exId, name: ex.name, cardio: Object.assign({ durationMin: 15, incline: 0, speed: 6 }, item.cardio), note: item.note || '' }
       : { exId: item.exId, name: ex.name, restSec: item.restSec || DB.settings.restDefault,
-          sets: (item.sets || []).map(s => ({ reps: s.reps, weight: s.weight, done: !!dateISO })), note: item.note || '' };
+          superset: !!item.superset,
+          sets: (item.sets || []).map(s => ({ reps: s.reps, weight: s.weight, done: !!dateISO,
+                                              drop: s.drop || undefined, amrap: s.amrap || undefined })),
+          note: item.note || '' };
   });
   const date = dateISO || todayISO();
   DB.active = {

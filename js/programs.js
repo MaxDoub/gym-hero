@@ -159,11 +159,16 @@ function drawEditorItems(body) {
           </div>
         </div>
       </div>`;
+    const avant = draft.items[idx - 1];
+    const dansGroupe = item.superset || (avant && avant.superset);
     return `
-      <div class="ex-card">
+      <div class="ex-card ${dansGroupe ? 'ss' : ''} ${item.superset ? 'ss-open' : ''} ${avant && avant.superset ? 'ss-cont' : ''}">
+        ${item.superset && !(avant && avant.superset) ? '<div class="ss-badge">⇅ Superset — enchaîné sans repos</div>' : ''}
         <div class="ex-head">
           <div class="emoji" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--card2)">🏋️</div>
           <div class="grow"><b>${esc(ex.name)}</b><div class="muscles">${esc(muscleLine(ex))}</div></div>
+          ${idx < draft.items.length - 1 ? `<button class="btn xs ${item.superset ? 'linked' : ''}" data-link="${idx}"
+            title="Enchaîner avec l'exercice suivant (superset)">⇅</button>` : ''}
           <button class="btn xs" data-up="${idx}">↑</button>
           <button class="btn xs danger" data-rm="${idx}">✕</button>
         </div>
@@ -192,6 +197,11 @@ function drawEditorItems(body) {
 
   // Interactions
   $$('[data-rm]', box).forEach(b => b.onclick = () => { draft.items.splice(+b.dataset.rm, 1); drawEditorItems(body); });
+  $$('[data-link]', box).forEach(b => b.onclick = () => {
+    const it = draft.items[+b.dataset.link];
+    it.superset = !it.superset;
+    drawEditorItems(body);
+  });
   $$('[data-up]', box).forEach(b => b.onclick = () => {
     const i = +b.dataset.up; if (i === 0) return;
     [draft.items[i-1], draft.items[i]] = [draft.items[i], draft.items[i-1]];

@@ -145,6 +145,20 @@ sont exclues du calcul de progression automatique — sans objectif de répétit
 il n'y a rien à comparer — mais leur charge est bien mémorisée. Pendant la séance,
 tu notes le nombre réellement atteint.
 
+### Supersets (exercices en duo)
+
+Une série du premier exercice, une série du second, **puis** la pause. Le bouton
+**⇅** dans l'en-tête d'un exercice l'enchaîne avec celui qui le suit : les deux
+cartes se réunissent sous un bandeau violet « Superset ».
+
+Le chrono de repos ne part alors **qu'après la série du second exercice** — il ne
+se déclenche pas quand tu valides une série du premier, puisque tu enchaînes. La
+liaison se règle aussi bien en séance que dans un programme, où elle est
+mémorisée et revient à chaque fois.
+
+Un superset peut réunir plus de deux exercices : lie simplement chaque exercice
+avec le suivant.
+
 ### Le cardio
 
 Tapis, vélo, elliptique, rameur, escalier et corde à sauter comptent comme

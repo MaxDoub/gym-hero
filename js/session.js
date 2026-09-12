@@ -141,14 +141,20 @@ function drawSessionList() {
       </div>`;
 
     const done = (entry.sets || []).filter(x => x.done).length;
+    const avant = s.entries[ei - 1];
+    const dansGroupe = entry.superset || (avant && avant.superset);
+    const debutGroupe = entry.superset && !(avant && avant.superset);
     return `
-      <div class="ex-card">
+      <div class="ex-card ${dansGroupe ? 'ss' : ''} ${entry.superset ? 'ss-open' : ''} ${avant && avant.superset ? 'ss-cont' : ''}">
+        ${debutGroupe ? '<div class="ss-badge">⇅ Superset — enchaîné sans repos</div>' : ''}
         <div class="ex-head">
           <div class="emoji">${done === entry.sets.length ? '✅' : '🏋️'}</div>
           <div class="grow">
             <b>${esc(ex.name)}</b>
             <div class="muscles is-editable" data-muscles="${entry.exId}">${esc(muscleLine(ex))} ✏️</div>
           </div>
+          ${ei < s.entries.length - 1 ? `<button class="btn xs ${entry.superset ? 'linked' : ''}"
+            data-link="${ei}" title="${entry.superset ? 'Détacher de l\'exercice suivant' : 'Enchaîner avec l\'exercice suivant (superset)'}">⇅</button>` : ''}
           <button class="btn xs" data-info="${entry.exId}">👁</button>
           <button class="btn xs danger" data-rme="${ei}">✕</button>
         </div>
@@ -181,9 +187,11 @@ function drawSessionList() {
     if (st.done) {
       buzz(25);
       checkPR(e, st);
-      // Un dégressif s'enchaîne sans repos : on ne lance le chrono qu'à la fin de la série.
+      // On ne lance le chrono qu'une fois la chaîne terminée : ni avant un
+      // segment dégressif, ni entre deux exercices en superset.
       const suivante = e.sets[+b.dataset.si + 1];
-      if (!(suivante && suivante.drop)) startRest(e.restSec || DB.settings.restDefault);
+      const enchaine = (suivante && suivante.drop) || e.superset;
+      if (!enchaine) startRest(e.restSec || DB.settings.restDefault);
     }
     drawSessionList();
     refreshSessionHeader();
@@ -217,6 +225,12 @@ function drawSessionList() {
     const e = s.entries[+b.dataset.rmset];
     if (e.sets.length > 1) e.sets.pop();
     save(); drawSessionList();
+  });
+  $$('[data-link]', box).forEach(b => b.onclick = () => {
+    const e = s.entries[+b.dataset.link];
+    e.superset = !e.superset;
+    save(); drawSessionList();
+    toast(e.superset ? 'Enchaîné avec l\'exercice suivant' : 'Exercices détachés');
   });
   $$('[data-rme]', box).forEach(b => b.onclick = () => {
     s.entries.splice(+b.dataset.rme, 1); save(); renderSession();
