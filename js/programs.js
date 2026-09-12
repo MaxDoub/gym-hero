@@ -65,11 +65,18 @@ function renderPrograms() {
 /* ---------------- Éditeur ---------------- */
 let draft = null;
 
-function openProgramEditor(id) {
+/**
+ * @param {string|null} id
+ * @param {boolean} keepDraft  rouvrir sans perdre ce qui est déjà saisi
+ *   (indispensable après le sélecteur d'exercice, qui ferme cette feuille)
+ */
+function openProgramEditor(id, keepDraft) {
   const existing = DB.programs.find(p => p.id === id);
-  draft = existing
-    ? JSON.parse(JSON.stringify(existing))
-    : { id: uid(), name: '', emoji: '🏋️', color: PROGRAM_COLORS[1], note: '', items: [] };
+  if (!keepDraft || !draft) {
+    draft = existing
+      ? JSON.parse(JSON.stringify(existing))
+      : { id: uid(), name: '', emoji: '🏋️', color: PROGRAM_COLORS[1], note: '', items: [] };
+  }
 
   openSheet(existing ? 'Modifier le programme' : 'Nouveau programme', `
     <div class="field"><label>Nom de la séance</label>
@@ -111,7 +118,9 @@ function openProgramEditor(id) {
       draft.items.push(ex.type === 'cardio'
         ? { exId, cardio: { durationMin: 15, incline: 0, speed: 6 }, restSec: 0 }
         : { exId, restSec: DB.settings.restDefault, sets: sets(3, 12, 20) });
-      reopenEditor(body);
+      // Le sélecteur a fermé cette feuille : on la rouvre avec la saisie en cours.
+      openProgramEditor(draft.id, true);
+      toast(`${ex.name} ajouté`, 'ok');
     });
     $('#pgSave', body).onclick = () => {
       if (!draft.name.trim()) return toast('Donne un nom à ta séance 🙂', 'warn');
@@ -129,9 +138,6 @@ function openProgramEditor(id) {
     drawEditorItems(body);
   });
 }
-
-/** Redessine la liste d'exercices sans perdre la saisie en cours. */
-function reopenEditor(body) { drawEditorItems(body); }
 
 function drawEditorItems(body) {
   const box = $('#pgItems', body);

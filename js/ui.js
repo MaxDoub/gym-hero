@@ -88,10 +88,36 @@ function openSheet(title, html, onMount) {
   bg.addEventListener('click', e => { if (e.target === bg) closeSheet(); });
   document.body.appendChild(bg);
   enableSheetDrag(bg);
+  fitSheetToKeyboard(bg);
   if (onMount) onMount($('.sheet-body', bg));
   return bg;
 }
-function closeSheet() { const s = $('.sheet-bg'); if (s) s.remove(); }
+function closeSheet() {
+  const s = $('.sheet-bg');
+  if (!s) return;
+  if (s._kbCleanup) s._kbCleanup();
+  s.remove();
+}
+
+/** Sur iPhone, le clavier recouvre le bas de l'écran : on remonte la feuille
+    et on la raccourcit pour que son contenu reste atteignable. */
+function fitSheetToKeyboard(bg) {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const sheet = $('.sheet', bg);
+  const apply = () => {
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    bg.style.paddingBottom = kb ? kb + 'px' : '';
+    sheet.style.maxHeight = Math.max(220, vv.height - 24) + 'px';
+  };
+  vv.addEventListener('resize', apply);
+  vv.addEventListener('scroll', apply);
+  bg._kbCleanup = () => {
+    vv.removeEventListener('resize', apply);
+    vv.removeEventListener('scroll', apply);
+  };
+  apply();
+}
 
 /** Glisser la feuille vers le bas pour la refermer (poignée ou haut de la feuille). */
 function enableSheetDrag(bg) {
@@ -153,9 +179,12 @@ function confirmSheet(title, msg, okLabel, onOk, danger) {
 function pickExercise(onPick, opts = {}) {
   const regions = ['Tous', ...new Set(allExercises().map(e => e.region))];
   openSheet('Ajouter un exercice', `
-    <input id="exSearch" placeholder="Rechercher (ex. leg press…)" autocomplete="off">
-    <div class="row wrap" style="gap:6px;margin:12px 0" id="exFilters">
-      ${regions.map((r, i) => `<button class="chip ${i === 0 ? 'on' : ''}" data-r="${esc(r)}">${esc(r)}</button>`).join('')}
+    <div class="sheet-sticky">
+      <input id="exSearch" placeholder="Rechercher (ex. leg press…)" autocomplete="off"
+             autocorrect="off" autocapitalize="none" enterkeyhint="done">
+      <div class="row wrap" style="gap:6px;margin:10px 0 8px" id="exFilters">
+        ${regions.map((r, i) => `<button class="chip ${i === 0 ? 'on' : ''}" data-r="${esc(r)}">${esc(r)}</button>`).join('')}
+      </div>
     </div>
     <div id="exList"></div>
     <button class="btn ghost block" id="exCustom" style="margin-top:10px">➕ Créer un exercice perso</button>
@@ -178,7 +207,11 @@ function pickExercise(onPick, opts = {}) {
         onPick(el.dataset.id);
       });
     };
-    $('#exSearch', body).oninput = e => { q = e.target.value.toLowerCase().trim(); draw(); };
+    const search = $('#exSearch', body);
+    const sheet = body.closest('.sheet');
+    search.oninput = e => { q = e.target.value.toLowerCase().trim(); draw(); sheet.scrollTop = 0; };
+    search.onfocus = () => setTimeout(() => { sheet.scrollTop = 0; }, 250);
+    search.onkeydown = e => { if (e.key === 'Enter') search.blur(); };
     $$('#exFilters .chip', body).forEach(c => c.onclick = () => {
       $$('#exFilters .chip', body).forEach(x => x.classList.remove('on'));
       c.classList.add('on'); region = c.dataset.r; draw();
