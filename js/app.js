@@ -430,7 +430,8 @@ function sessionSheet(id) {
   });
 }
 
-function exerciseSheet(exId) {
+/** @param {Function} [onClose] ce qu'il faut rouvrir en quittant la fiche */
+function exerciseSheet(exId, onClose) {
   const ex = getExercise(exId);
   const hist = exerciseHistory(exId).filter(h => h.top);
   const pr = prFor(exId);
@@ -457,7 +458,8 @@ function exerciseSheet(exId) {
       <div class="stat"><b>${pr.reps}</b><span>reps</span></div>
       <div class="stat accent"><b>${fmtNum(pr.e1rm)}</b><span>1RM estimé</span></div>
     </div>` : ''}
-    ${hist.length > 1 ? `<div class="chart-box sm"><canvas id="exChart"></canvas></div>` : '<p class="tiny muted center">Pas encore assez d\'historique.</p>'}
+    ${hist.length > 1 ? `<div class="chart-box sm"><canvas id="exChart"></canvas></div>` : ''}
+    ${onClose ? '<button class="btn ghost block" id="exBack" style="margin-bottom:6px">‹ Retour</button>' : ''}
     <div class="section-title">Muscles ciblés
       <button class="btn xs" id="exEditMuscles">✏️ Modifier</button>
     </div>
@@ -472,6 +474,7 @@ function exerciseSheet(exId) {
   `, body => {
     renderBodyView($('#exBodies', body), heatFromExercises([ex]), { uid: 'ex' });
     $('#exEditMuscles', body).onclick = () => muscleEditorSheet(exId);
+    if (onClose) $('#exBack', body).onclick = () => { closeSheet(); onClose(); };
     // Photo indisponible (hors ligne, première consultation) : on masque
     // juste la vignette concernée, et le bloc entier si aucune n'arrive.
     $$('.demo img', body).forEach(im => {

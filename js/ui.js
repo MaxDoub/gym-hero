@@ -196,16 +196,19 @@ function pickExercise(onPick, opts = {}) {
         (region === 'Tous' || e.region === region) &&
         (!q || e.name.toLowerCase().includes(q) || (e.eq || '').toLowerCase().includes(q)));
       list.innerHTML = items.length ? `<div class="card flush">${items.map(e => `
-        <div class="list-item" data-id="${e.id}">
+        <div class="list-item">
           <div class="emoji">${e.type === 'cardio' ? '🏃' : '🏋️'}</div>
-          <div class="grow"><b>${esc(e.name)}</b><span>${esc(e.eq)} · ${esc(muscleLine(e))}</span></div>
-          <span class="chev">＋</span>
+          <div class="grow" data-see="${e.id}"><b>${esc(e.name)}</b><span>${esc(e.eq)} · ${esc(muscleLine(e))}</span></div>
+          <button class="btn xs" data-see="${e.id}" title="Voir la démonstration">👁</button>
+          <button class="btn xs primary" data-id="${e.id}" title="Ajouter">＋</button>
         </div>`).join('')}</div>`
         : `<div class="empty">Aucun exercice trouvé.</div>`;
-      $$('.list-item', list).forEach(el => el.onclick = () => {
+      $$('[data-id]', list).forEach(el => el.onclick = () => {
         closeSheet();
         onPick(el.dataset.id);
       });
+      // Voir comment se fait l'exercice avant de l'ajouter
+      $$('[data-see]', list).forEach(el => el.onclick = () => exerciseSheet(el.dataset.see, () => pickExercise(onPick, opts)));
     };
     const search = $('#exSearch', body);
     const sheet = body.closest('.sheet');

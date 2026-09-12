@@ -148,6 +148,7 @@ function drawEditorItems(body) {
         <div class="ex-head">
           <div class="emoji" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--card2)">🏃</div>
           <div class="grow"><b>${esc(ex.name)}</b><div class="muscles">Cardio · ${esc((ex.secondary||[]).map(muscleName).join(', '))}</div></div>
+          <button class="btn xs" data-see="${item.exId}" title="Voir la démonstration">👁</button>
           <button class="btn xs" data-up="${idx}">↑</button>
           <button class="btn xs danger" data-rm="${idx}">✕</button>
         </div>
@@ -169,6 +170,7 @@ function drawEditorItems(body) {
           <div class="grow"><b>${esc(ex.name)}</b><div class="muscles">${esc(muscleLine(ex))}</div></div>
           ${idx < draft.items.length - 1 ? `<button class="btn xs ${item.superset ? 'linked' : ''}" data-link="${idx}"
             title="Enchaîner avec l'exercice suivant (superset)">⇅</button>` : ''}
+          <button class="btn xs" data-see="${item.exId}" title="Voir la démonstration">👁</button>
           <button class="btn xs" data-up="${idx}">↑</button>
           <button class="btn xs danger" data-rm="${idx}">✕</button>
         </div>
@@ -197,6 +199,8 @@ function drawEditorItems(body) {
 
   // Interactions
   $$('[data-rm]', box).forEach(b => b.onclick = () => { draft.items.splice(+b.dataset.rm, 1); drawEditorItems(body); });
+  $$('[data-see]', box).forEach(b => b.onclick = () =>
+    exerciseSheet(b.dataset.see, () => openProgramEditor(draft.id, true)));
   $$('[data-link]', box).forEach(b => b.onclick = () => {
     const it = draft.items[+b.dataset.link];
     it.superset = !it.superset;
