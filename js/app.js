@@ -434,7 +434,19 @@ function exerciseSheet(exId) {
   const ex = getExercise(exId);
   const hist = exerciseHistory(exId).filter(h => h.top);
   const pr = prFor(exId);
+  const guide = exerciseGuide(exId);
+  const imgs = demoImages(exId);
   openSheet(ex.name, `
+    ${guide ? `
+      <div class="demo">
+        ${imgs.map((u, i) => `<figure><img src="${u}" alt="" loading="lazy" decoding="async">
+          <figcaption>${i ? 'Fin' : 'Départ'}</figcaption></figure>`).join('')}
+      </div>
+      <div class="card howto">
+        <b class="howto-title">Comment le faire</b>
+        <ol>${guide.how.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+        ${guide.tip ? `<p class="howto-tip">💡 ${esc(guide.tip)}</p>` : ''}
+      </div>` : ''}
     <div class="row wrap" style="gap:6px;margin-bottom:12px">
       <span class="chip">${esc(ex.eq || '—')}</span>
       ${(ex.primary || []).map(m => `<span class="chip on">${esc(muscleName(m))}</span>`).join('')}
@@ -460,6 +472,15 @@ function exerciseSheet(exId) {
   `, body => {
     renderBodyView($('#exBodies', body), heatFromExercises([ex]), { uid: 'ex' });
     $('#exEditMuscles', body).onclick = () => muscleEditorSheet(exId);
+    // Photo indisponible (hors ligne, première consultation) : on masque
+    // juste la vignette concernée, et le bloc entier si aucune n'arrive.
+    $$('.demo img', body).forEach(im => {
+      im.onerror = () => {
+        const fig = im.closest('figure'); if (fig) fig.remove();
+        const d = $('.demo', body);
+        if (d && !d.querySelector('figure')) d.remove();
+      };
+    });
     if (hist.length > 1) lineChart('exChart', hist.map(h => fmtDate(h.date)),
       [{ label: 'Charge', data: hist.map(h => h.top), color: '#FFC531' }]);
   });
@@ -556,6 +577,18 @@ function renderSettings() {
       <button class="btn danger block" style="margin-top:12px" id="stReset">Tout réinitialiser</button>
     </div>
 
+    <div class="section-title">Démonstrations</div>
+    <div class="card">
+      <p class="tiny muted" style="margin-top:0">Chaque exercice montre deux photos et la marche à suivre.
+      Les photos se téléchargent à la première consultation, puis restent disponibles hors ligne.
+      Tu peux tout précharger maintenant pour être tranquille à la salle (8,5 Mo).</p>
+      <button class="btn block" id="stPrecache">⬇︎ Précharger toutes les démonstrations</button>
+      <div class="vbar hidden" id="stPrecacheBar" style="margin-top:12px">
+        <div class="lbl"><span id="stPrecacheTxt">Téléchargement…</span></div>
+        <div class="track"><div class="fill" id="stPrecacheFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
     <div class="section-title">Installer sur l'iPhone</div>
     <div class="card tiny muted">
       Safari ▸ bouton <b>Partager</b> ▸ <b>Sur l'écran d'accueil</b>.
@@ -600,6 +633,31 @@ function renderSettings() {
     };
     inp.click();
   };
+  $('#stPrecache', v).onclick = () => {
+    const urls = [];
+    allExercises().forEach(e => { const d = demoImages(e.id); if (d) urls.push(...d); });
+    if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+      return toast('Disponible une fois l\'app installée sur l\'écran d\'accueil', 'warn');
+    }
+    const bar = $('#stPrecacheBar', v), fill = $('#stPrecacheFill', v), txt = $('#stPrecacheTxt', v);
+    bar.classList.remove('hidden');
+    $('#stPrecache', v).disabled = true;
+    navigator.serviceWorker.addEventListener('message', function onMsg(ev) {
+      const d = ev.data || {};
+      if (d.type === 'demos-progress' || d.type === 'demos-done') {
+        fill.style.width = Math.round(d.done / d.total * 100) + '%';
+        txt.textContent = `${d.done} / ${d.total} photos`;
+      }
+      if (d.type === 'demos-done') {
+        navigator.serviceWorker.removeEventListener('message', onMsg);
+        $('#stPrecache', v).disabled = false;
+        toast('Démonstrations disponibles hors ligne ✅', 'ok');
+      }
+    });
+    navigator.serviceWorker.controller.postMessage({ type: 'precache-demos', urls });
+    toast('Téléchargement lancé…');
+  };
+
   $('#stReset', v).onclick = () => confirmSheet('Tout effacer ?',
     'Séances, programmes et records seront supprimés définitivement. Exporte une sauvegarde avant !', 'Tout effacer', () => {
       localStorage.removeItem(DB_KEY); DB = null; load(); renderAll(); go('home'); toast('Application réinitialisée');

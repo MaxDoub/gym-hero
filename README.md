@@ -105,6 +105,22 @@ elle est remplacée à l'identique (même date, même place), pas dupliquée.
 Les charges du programme ne sont ajustées que si la séance modifiée est bien la
 plus récente — corriger une vieille séance ne dérègle donc pas ta progression.
 
+### Démonstrations des exercices
+
+Chaque fiche d'exercice montre **deux photos** (position de départ et position
+finale) et la marche à suivre en français, avec un point de vigilance.
+
+Les textes sont dans `js/howto.js`. Les photos viennent de
+[free-exercise-db](https://github.com/yuhonas/free-exercise-db) — 876 exercices
+sous licence **Unlicense**, c'est-à-dire domaine public — et sont servies par
+jsDelivr plutôt qu'embarquées : 132 photos pèsent 8,5 Mo, ce qui triplerait le
+poids du dépôt.
+
+Le service worker les met en cache au fil des consultations, dans un cache
+séparé (`gym-hero-demos`) qui **survit aux mises à jour de l'app**. Une photo
+déjà vue reste donc consultable hors ligne. Pour tout avoir d'avance :
+**Paramètres ▸ Précharger toutes les démonstrations**.
+
 ### Le cardio
 
 Tapis, vélo, elliptique, rameur, escalier et corde à sauter comptent comme

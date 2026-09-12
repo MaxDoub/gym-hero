@@ -323,6 +323,21 @@ main{padding:4px 16px 28px;max-width:760px;margin:0 auto}
 .toast.warn{border-color:rgba(255,197,49,.5)}
 .toast.pr{background:var(--grad-warm);color:#1B1200;border:0;font-weight:800}
 
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.demo figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.demo img{width:100%;height:auto;display:block;aspect-ratio:3/2;object-fit:cover}
+.demo figcaption{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted2);background:var(--card);text-align:center;padding:4px 0
+}
+.howto-title{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2)}
+.howto ol{margin:8px 0 0;padding-left:18px}
+.howto li{margin-bottom:7px;font-size:14px;line-height:1.45}
+.howto-tip{
+  margin:10px 0 0;padding:9px 11px;border-radius:var(--r-sm);font-size:13px;
+  background:rgba(255,197,49,.10);border:1px solid rgba(255,197,49,.28);color:#FFDF9B
+}
+
 .empty{text-align:center;padding:34px 18px;color:var(--muted2)}
 .empty .big{font-size:42px;margin-bottom:10px;filter:grayscale(.2)}
 
