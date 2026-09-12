@@ -1,10 +1,10 @@
 /* Gym Hero — service worker : l'app fonctionne intégralement hors ligne */
-const CACHE = 'gym-hero-v12';
+const CACHE = 'gym-hero-v13';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest',
-  './css/style.css?v=12',
-  './js/muscles.js?v=12', './js/exercises.js?v=12', './js/howto.js?v=12', './js/anatomy.js?v=12',
-  './js/store.js?v=12', './js/ui.js?v=12', './js/programs.js?v=12', './js/session.js?v=12', './js/app.js?v=12',
+  './css/style.css?v=13',
+  './js/muscles.js?v=13', './js/exercises.js?v=13', './js/howto.js?v=13', './js/anatomy.js?v=13',
+  './js/store.js?v=13', './js/ui.js?v=13', './js/programs.js?v=13', './js/session.js?v=13', './js/app.js?v=13',
   './assets/vendor/chart.umd.min.js',
   './assets/body-front.png', './assets/body-back.png',
   './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png',

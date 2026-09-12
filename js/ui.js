@@ -84,9 +84,12 @@ function openSheet(title, html, onMount) {
   closeSheet();
   const bg = document.createElement('div');
   bg.className = 'sheet-bg';
-  bg.innerHTML = `<div class="sheet"><div class="handle"></div>${title ? `<h3>${esc(title)}</h3>` : ''}<div class="sheet-body">${html}</div></div>`;
+  bg.innerHTML = `<div class="sheet"><button class="sheet-close" aria-label="Fermer">✕</button>`
+    + `<div class="handle"></div>${title ? `<h3>${esc(title)}</h3>` : ''}`
+    + `<div class="sheet-body">${html}</div></div>`;
   bg.addEventListener('click', e => { if (e.target === bg) closeSheet(); });
   document.body.appendChild(bg);
+  $('.sheet-close', bg).onclick = closeSheet;
   enableSheetDrag(bg);
   fitSheetToKeyboard(bg);
   if (onMount) onMount($('.sheet-body', bg));
@@ -119,48 +122,72 @@ function fitSheetToKeyboard(bg) {
   apply();
 }
 
-/** Glisser la feuille vers le bas pour la refermer (poignée ou haut de la feuille). */
+/** Glisser la feuille vers le bas pour la refermer.
+    La prise se fait depuis n'importe où dans la feuille, du moment que son
+    contenu est déjà en haut — comme les panneaux natifs d'iOS. */
 function enableSheetDrag(bg) {
   const sheet = $('.sheet', bg);
   if (!sheet) return;
-  let startY = 0, dy = 0, dragging = false;
-
-  const canStart = e => {
-    // On ne tire que depuis la poignée ou le haut, et seulement si la feuille est en haut de son défilement
-    const y = e.touches[0].clientY - sheet.getBoundingClientRect().top;
-    return sheet.scrollTop <= 0 && y < 90;
-  };
+  let startY = 0, dy = 0, arme = false, tire = false;
 
   sheet.addEventListener('touchstart', e => {
-    if (!canStart(e)) return;
-    dragging = true; startY = e.touches[0].clientY; dy = 0;
+    arme = sheet.scrollTop <= 0;   // en haut du contenu : le geste peut tirer
+    tire = false;
+    startY = e.touches[0].clientY;
+    dy = 0;
     sheet.style.transition = 'none';
   }, { passive: true });
 
   sheet.addEventListener('touchmove', e => {
-    if (!dragging) return;
+    if (!arme) return;
     dy = e.touches[0].clientY - startY;
-    if (dy < 0) dy = 0;
+
+    if (!tire) {
+      if (dy < -6) { arme = false; return; }  // l'utilisateur remonte : on laisse défiler
+      if (dy < 6) return;                     // direction encore indécise
+      tire = true;
+    }
+    // Empêche le rebond élastique de Safari, qui sinon avale le geste
+    if (e.cancelable) e.preventDefault();
     sheet.style.transform = `translateY(${dy}px)`;
     bg.style.background = `rgba(4,7,14,${Math.max(0.2, 0.72 - dy / 600)})`;
-  }, { passive: true });
+  }, { passive: false });
 
-  const end = () => {
-    if (!dragging) return;
-    dragging = false;
+  const fin = () => {
     sheet.style.transition = 'transform .22s ease';
-    if (dy > 110) {                       // assez tiré : on ferme
+    if (tire && dy > 110) {
       sheet.style.transform = 'translateY(100%)';
       bg.style.transition = 'opacity .2s ease';
       bg.style.opacity = '0';
       setTimeout(closeSheet, 200);
-    } else {                              // pas assez : la feuille remonte
+    } else {
       sheet.style.transform = '';
       bg.style.background = '';
     }
+    arme = false; tire = false;
   };
-  sheet.addEventListener('touchend', end, { passive: true });
-  sheet.addEventListener('touchcancel', end, { passive: true });
+  sheet.addEventListener('touchend', fin, { passive: true });
+  sheet.addEventListener('touchcancel', fin, { passive: true });
+}
+
+/** Sur iPhone, le clavier recouvre le bas de l'écran : on remonte la feuille
+    et on la raccourcit pour que son contenu reste atteignable. */
+function fitSheetToKeyboard(bg) {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const sheet = $('.sheet', bg);
+  const apply = () => {
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    bg.style.paddingBottom = kb ? kb + 'px' : '';
+    sheet.style.maxHeight = Math.max(220, vv.height - 24) + 'px';
+  };
+  vv.addEventListener('resize', apply);
+  vv.addEventListener('scroll', apply);
+  bg._kbCleanup = () => {
+    vv.removeEventListener('resize', apply);
+    vv.removeEventListener('scroll', apply);
+  };
+  apply();
 }
 
 function confirmSheet(title, msg, okLabel, onOk, danger) {
