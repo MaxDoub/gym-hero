@@ -121,6 +121,30 @@ séparé (`gym-hero-demos`) qui **survit aux mises à jour de l'app**. Une photo
 déjà vue reste donc consultable hors ligne. Pour tout avoir d'avance :
 **Paramètres ▸ Précharger toutes les démonstrations**.
 
+### Séries dégressives et séries à l'échec
+
+Un **dégressif** n'est pas une série de plus : c'est la même série qui continue
+avec une charge allégée, sans repos. Le bouton **↓ Dégressif** ajoute donc une
+ligne rattachée à la précédente par un crochet orange, numérotée `↓` au lieu de
+`4`. Concrètement :
+
+| Série | Reps | Charge |
+|---|---|---|
+| 1 | 12 | 8 kg |
+| 2 | 12 | 8 kg |
+| 3 | max | 8 kg |
+| ↓ | max | 6 kg |
+
+Conséquences : le compteur annonce 3 séries et non 4, le chrono de repos ne se
+déclenche **pas** entre une série et son dégressif (mais bien après le dernier
+segment), et le volume additionne tout normalement. La charge proposée pour un
+dégressif est celle de la ligne du dessus allégée d'un quart, à ajuster.
+
+**Série à l'échec** : laisse le champ Reps **vide**, il affiche `max`. Ces séries
+sont exclues du calcul de progression automatique — sans objectif de répétitions,
+il n'y a rien à comparer — mais leur charge est bien mémorisée. Pendant la séance,
+tu notes le nombre réellement atteint.
+
 ### Le cardio
 
 Tapis, vélo, elliptique, rameur, escalier et corde à sauter comptent comme

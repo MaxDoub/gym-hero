@@ -17,7 +17,7 @@ function programTopMuscles(prog, n = 3) {
 
 function programSummary(prog) {
   const strength = (prog.items || []).filter(i => getExercise(i.exId).type !== 'cardio');
-  const setCount = strength.reduce((t, i) => t + (i.sets || []).length, 0);
+  const setCount = strength.reduce((t, i) => t + realSetCount(i.sets), 0);
   const vol = strength.reduce((t, i) => t + (i.sets || []).reduce((x, s) => x + setVolume(s), 0), 0);
   return { exercises: (prog.items || []).length, sets: setCount, volume: vol };
 }
@@ -169,15 +169,17 @@ function drawEditorItems(body) {
         </div>
         <div class="ex-body">
           <div class="set-head"><span>Série</span><span>Reps</span><span>Charge (${DB.settings.unit})</span><span></span></div>
-          ${item.sets.map((s, si) => `
-            <div class="set-row">
-              <div class="n">${si + 1}</div>
-              <input type="number" inputmode="numeric" data-s="reps" data-i="${idx}" data-si="${si}" value="${s.reps}">
+          ${(() => { const nums = setNumbers(item.sets); return item.sets.map((s, si) => `
+            <div class="set-row ${s.drop ? 'is-drop' : ''}">
+              <div class="n" ${s.drop ? 'title="Dégressif : enchaîné sans repos"' : ''}>${s.drop ? '↓' : nums[si]}</div>
+              <input type="number" inputmode="numeric" data-s="reps" data-i="${idx}" data-si="${si}"
+                     value="${s.reps || ''}" placeholder="max">
               <input type="number" inputmode="decimal" step="0.5" data-s="weight" data-i="${idx}" data-si="${si}" value="${s.weight}">
               <button class="check" data-rms="${idx}" data-si="${si}" aria-label="Retirer la série">−</button>
-            </div>`).join('')}
+            </div>`).join(''); })()}
           <div class="row wrap" style="gap:8px;margin-top:8px">
             <button class="btn xs" data-adds="${idx}">＋ Série</button>
+            <button class="btn xs" data-adddrop="${idx}">↓ Dégressif</button>
             <button class="btn xs" data-copy="${idx}">⧉ Uniformiser</button>
             <div class="grow"></div>
             <span class="tiny muted">Repos</span>
@@ -197,8 +199,15 @@ function drawEditorItems(body) {
   });
   $$('[data-adds]', box).forEach(b => b.onclick = () => {
     const it = draft.items[+b.dataset.adds];
-    const last = it.sets[it.sets.length - 1] || { reps: 12, weight: 20 };
+    const last = it.sets.filter(x => !x.drop).slice(-1)[0] || it.sets[it.sets.length - 1] || { reps: 12, weight: 20 };
     it.sets.push({ reps: last.reps, weight: last.weight });
+    drawEditorItems(body);
+  });
+  $$('[data-adddrop]', box).forEach(b => b.onclick = () => {
+    const it = draft.items[+b.dataset.adddrop];
+    const last = it.sets[it.sets.length - 1] || { reps: 12, weight: 20 };
+    const allege = Math.max(0, Math.round((Number(last.weight) || 0) * 0.75 * 2) / 2);
+    it.sets.push({ reps: last.reps, weight: allege, drop: true });
     drawEditorItems(body);
   });
   $$('[data-rms]', box).forEach(b => b.onclick = () => {
@@ -215,7 +224,9 @@ function drawEditorItems(body) {
   });
   $$('[data-s]', box).forEach(inp => inp.onchange = () => {
     const it = draft.items[+inp.dataset.i];
-    it.sets[+inp.dataset.si][inp.dataset.s] = Number(inp.value) || 0;
+    const st = it.sets[+inp.dataset.si];
+    st[inp.dataset.s] = Number(inp.value) || 0;
+    if (inp.dataset.s === 'reps') st.amrap = !inp.value.trim();  // vide = jusqu'à l'échec
     drawBodiesPreview(body);
   });
   $$('[data-c]', box).forEach(inp => inp.onchange = () => {

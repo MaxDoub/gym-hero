@@ -123,6 +123,14 @@ function seed() {
 
 /* ---------------- Volume ---------------- */
 function setVolume(s) { return (Number(s.reps) || 0) * (Number(s.weight) || 0); }
+
+/** Numéro affiché pour chaque série : les segments dégressifs ne comptent pas. */
+function setNumbers(sets) {
+  let n = 0;
+  return (sets || []).map(x => (x.drop ? 0 : ++n));
+}
+/** Nombre de séries « vraies » (hors segments dégressifs). */
+function realSetCount(sets) { return (sets || []).filter(x => !x.drop).length; }
 function entryVolume(entry) {
   if (entry.cardio) return 0;
   return (entry.sets || []).filter(s => s.done !== false).reduce((t, s) => t + setVolume(s), 0);
@@ -296,8 +304,11 @@ function applyProgression(session) {
 
     // 2) Toutes les séries au moins à l'objectif de reps → on monte la charge.
     if (DB.settings.autoProgress) {
-      const target = Math.max(...done.map(s => Number(s.reps) || 0));
-      const allHit = done.every(s => (Number(s.reps) || 0) >= target && Number(s.weight) > 0);
+      // Une série menée à l'échec n'a pas d'objectif de répétitions : on ne s'en sert
+      // pas pour décider d'une hausse, et les segments dégressifs suivent leur série.
+      const judgeable = done.filter(s => !s.drop && !s.amrap);
+      const target = judgeable.length ? Math.max(...judgeable.map(s => Number(s.reps) || 0)) : 0;
+      const allHit = judgeable.length && judgeable.every(s => (Number(s.reps) || 0) >= target && Number(s.weight) > 0);
       if (allHit && target > 0) {
         const inc = incrementFor(ex);
         item.sets = item.sets.map(s => ({ reps: s.reps, weight: Math.round((s.weight + inc) * 100) / 100 }));

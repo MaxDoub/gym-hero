@@ -42,8 +42,8 @@ function renderSession() {
   }
 
   const elapsed = Math.round((Date.now() - s.startedAt) / 1000);
-  const doneSets = s.entries.reduce((t, e) => t + (e.sets || []).filter(x => x.done).length, 0);
-  const allSets = s.entries.reduce((t, e) => t + (e.sets || []).length, 0);
+  const doneSets = s.entries.reduce((t, e) => t + (e.sets || []).filter(x => x.done && !x.drop).length, 0);
+  const allSets = s.entries.reduce((t, e) => t + realSetCount(e.sets), 0);
   const vol = sessionVolume(s);
 
   const past = !!(s.past || s.editingId);
@@ -155,16 +155,18 @@ function drawSessionList() {
         <div class="ex-body">
           ${pr ? `<div class="tiny muted" style="margin-bottom:8px">Record : <b class="pr-flag">${fmtWeight(pr.weight)} × ${pr.reps}</b> · ${fmtDate(pr.date)}</div>` : ''}
           <div class="set-head"><span>Série</span><span>Reps</span><span>Charge (${DB.settings.unit})</span><span>✓</span></div>
-          ${entry.sets.map((st, si) => `
-            <div class="set-row ${st.done ? 'done' : ''}">
-              <div class="n">${si + 1}</div>
-              <input type="number" inputmode="numeric" data-f="reps" data-e="${ei}" data-si="${si}" value="${st.reps}">
+          ${(() => { const nums = setNumbers(entry.sets); return entry.sets.map((st, si) => `
+            <div class="set-row ${st.done ? 'done' : ''} ${st.drop ? 'is-drop' : ''}">
+              <div class="n" ${st.drop ? 'title="Dégressif : enchaîné sans repos"' : ''}>${st.drop ? '↓' : nums[si]}</div>
+              <input type="number" inputmode="numeric" data-f="reps" data-e="${ei}" data-si="${si}"
+                     value="${st.reps || ''}" placeholder="${st.amrap ? 'max' : ''}">
               <input type="number" inputmode="decimal" step="0.5" data-f="weight" data-e="${ei}" data-si="${si}" value="${st.weight}">
               <button class="check ${st.done ? 'on' : ''}" data-check="${ei}" data-si="${si}">✓</button>
-            </div>`).join('')}
-          <div class="row" style="gap:8px;margin-top:8px">
+            </div>`).join(''); })()}
+          <div class="row wrap" style="gap:8px;margin-top:8px">
             <button class="btn xs" data-addset="${ei}">＋ Série</button>
-            <button class="btn xs" data-rmset="${ei}">− Série</button>
+            <button class="btn xs" data-adddrop="${ei}" title="Enchaîner sans repos avec une charge allégée">↓ Dégressif</button>
+            <button class="btn xs" data-rmset="${ei}">−</button>
             <div class="grow"></div>
             <span class="tiny muted">Repos ${entry.restSec || DB.settings.restDefault}s</span>
           </div>
@@ -179,7 +181,9 @@ function drawSessionList() {
     if (st.done) {
       buzz(25);
       checkPR(e, st);
-      startRest(e.restSec || DB.settings.restDefault);
+      // Un dégressif s'enchaîne sans repos : on ne lance le chrono qu'à la fin de la série.
+      const suivante = e.sets[+b.dataset.si + 1];
+      if (!(suivante && suivante.drop)) startRest(e.restSec || DB.settings.restDefault);
     }
     drawSessionList();
     refreshSessionHeader();
@@ -198,8 +202,15 @@ function drawSessionList() {
   });
   $$('[data-addset]', box).forEach(b => b.onclick = () => {
     const e = s.entries[+b.dataset.addset];
-    const last = e.sets[e.sets.length - 1] || { reps: 12, weight: 20 };
+    const last = e.sets.filter(x => !x.drop).slice(-1)[0] || e.sets[e.sets.length - 1] || { reps: 12, weight: 20 };
     e.sets.push({ reps: last.reps, weight: last.weight, done: false });
+    save(); drawSessionList();
+  });
+  $$('[data-adddrop]', box).forEach(b => b.onclick = () => {
+    const e = s.entries[+b.dataset.adddrop];
+    const last = e.sets[e.sets.length - 1] || { reps: 12, weight: 20 };
+    const allege = Math.max(0, Math.round((Number(last.weight) || 0) * 0.75 * 2) / 2);
+    e.sets.push({ reps: last.reps, weight: allege, done: false, drop: true });
     save(); drawSessionList();
   });
   $$('[data-rmset]', box).forEach(b => b.onclick = () => {
@@ -216,8 +227,8 @@ function drawSessionList() {
 
 function refreshSessionHeader() {
   const s = DB.active; if (!s) return;
-  const doneSets = s.entries.reduce((t, e) => t + (e.sets || []).filter(x => x.done).length, 0);
-  const allSets = s.entries.reduce((t, e) => t + (e.sets || []).length, 0);
+  const doneSets = s.entries.reduce((t, e) => t + (e.sets || []).filter(x => x.done && !x.drop).length, 0);
+  const allSets = s.entries.reduce((t, e) => t + realSetCount(e.sets), 0);
   const hero = $('#view-session .hero');
   if (hero) {
     const b = hero.querySelector('div[style*="right"] b');

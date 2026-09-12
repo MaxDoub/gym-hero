@@ -407,7 +407,7 @@ function sessionSheet(id) {
       return `<div class="card"><b>${esc(ex.name)}</b>
         <div class="tiny muted" style="margin:2px 0 8px">${esc(muscleLine(ex))}</div>
         <div class="row wrap" style="gap:6px">${(e.sets || []).filter(x => x.done !== false)
-          .map(x => `<span class="chip cyan">${fmtNum(x.weight)} × ${x.reps}</span>`).join('')}</div></div>`;
+          .map(x => `<span class="chip ${x.drop ? 'yellow' : 'cyan'}">${x.drop ? '↓ ' : ''}${fmtNum(x.weight)} × ${x.reps}</span>`).join('')}</div></div>`;
     }).join('')}
     ${s.note ? `<div class="card tiny">📝 ${esc(s.note)}</div>` : ''}
     <div class="section-title">Muscles travaillés</div>
