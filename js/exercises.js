@@ -34,6 +34,7 @@ const EXERCISE_LIBRARY = [
   { id:'chest_press',    name:'Développé machine',       eq:'Machine',   region:'Poitrine', type:'strength', primary:['chest'],                   secondary:['triceps','front_delts'] },
   { id:'pec_deck',       name:'Pec deck / Butterfly',    eq:'Machine',   region:'Poitrine', type:'strength', primary:['chest'],                   secondary:['front_delts'] },
   { id:'cable_fly',      name:'Écarté à la poulie',      eq:'Poulie',    region:'Poitrine', type:'strength', primary:['chest'],                   secondary:['front_delts'] },
+  { id:'low_cable_fly',  name:'Écarté poulie basse (bas vers haut)', eq:'Poulie', region:'Poitrine', type:'strength', primary:['chest','front_delts'], secondary:[] },
   { id:'dips',           name:'Dips',                    eq:'Poids du corps', region:'Poitrine', type:'strength', primary:['chest','triceps'],    secondary:['front_delts'] },
   { id:'pushup',         name:'Pompes',                  eq:'Poids du corps', region:'Poitrine', type:'strength', primary:['chest'],              secondary:['triceps','front_delts','abs'] },
 
@@ -46,6 +47,7 @@ const EXERCISE_LIBRARY = [
   { id:'t_bar_row',      name:'Rowing T-bar',            eq:'Machine',   region:'Dos', type:'strength', primary:['mid_back','lats'],              secondary:['biceps','lower_back'] },
   { id:'machine_row',    name:'Rowing machine',          eq:'Machine',   region:'Dos', type:'strength', primary:['mid_back','lats'],              secondary:['biceps','rear_delts'] },
   { id:'pullover',       name:'Pullover',                eq:'Poulie',    region:'Dos', type:'strength', primary:['lats'],                         secondary:['chest','triceps'] },
+  { id:'straight_arm_pulldown', name:'Pullover à la poulie (bras tendus)', eq:'Poulie', region:'Dos', type:'strength', primary:['lats'], secondary:['triceps','abs'] },
   { id:'shrug',          name:'Shrug (haussement)',      eq:'Haltères',  region:'Dos', type:'strength', primary:['traps'],                        secondary:['forearms'] },
   { id:'back_extension', name:'Extension lombaire',      eq:'Machine',   region:'Dos', type:'strength', primary:['lower_back'],                   secondary:['glutes','hamstrings'] },
   { id:'face_pull',      name:'Face pull',               eq:'Poulie',    region:'Dos', type:'strength', primary:['rear_delts','mid_back'],        secondary:['traps'] },
@@ -56,17 +58,22 @@ const EXERCISE_LIBRARY = [
   { id:'lateral_raise',  name:'Élévations latérales',    eq:'Haltères',  region:'Épaules', type:'strength', primary:['side_delts'],               secondary:['traps'] },
   { id:'front_raise',    name:'Élévations frontales',    eq:'Haltères',  region:'Épaules', type:'strength', primary:['front_delts'],              secondary:['chest'] },
   { id:'rear_delt_fly',  name:'Oiseau (rear delts)',     eq:'Haltères',  region:'Épaules', type:'strength', primary:['rear_delts'],               secondary:['mid_back','traps'] },
+  { id:'cable_lateral',  name:'Élévations latérales à la poulie', eq:'Poulie', region:'Épaules', type:'strength', primary:['side_delts'],        secondary:['traps'] },
+  { id:'smith_upright',  name:'Rowing menton à la Smith',         eq:'Smith',  region:'Épaules', type:'strength', primary:['side_delts','traps'], secondary:['biceps'] },
+  { id:'smith_shrug',    name:'Shrug à la Smith',                 eq:'Smith',  region:'Épaules', type:'strength', primary:['traps'],              secondary:['forearms'] },
   { id:'upright_row',    name:'Rowing menton',           eq:'Barre',     region:'Épaules', type:'strength', primary:['side_delts','traps'],       secondary:['biceps'] },
 
   /* ---------- BRAS ---------- */
   { id:'barbell_curl',   name:'Curl barre',              eq:'Barre',     region:'Bras', type:'strength', primary:['biceps'],                      secondary:['forearms'] },
   { id:'db_curl',        name:'Curl haltères',           eq:'Haltères',  region:'Bras', type:'strength', primary:['biceps'],                      secondary:['forearms'] },
   { id:'hammer_curl',    name:'Curl marteau',            eq:'Haltères',  region:'Bras', type:'strength', primary:['biceps','forearms'],           secondary:[] },
+  { id:'concentration_curl', name:'Curl concentré',            eq:'Haltère', region:'Bras', type:'strength', primary:['biceps'], secondary:[], unilateral:true },
   { id:'preacher_curl',  name:'Curl pupitre',            eq:'Machine',   region:'Bras', type:'strength', primary:['biceps'],                      secondary:['forearms'] },
   { id:'cable_curl',     name:'Curl poulie',             eq:'Poulie',    region:'Bras', type:'strength', primary:['biceps'],                      secondary:['forearms'] },
   { id:'triceps_pushdown',name:'Extension triceps poulie',eq:'Poulie',   region:'Bras', type:'strength', primary:['triceps'],                     secondary:[] },
   { id:'skull_crusher',  name:'Barre au front',          eq:'Barre',     region:'Bras', type:'strength', primary:['triceps'],                     secondary:['front_delts'] },
   { id:'overhead_ext',   name:'Extension triceps nuque', eq:'Haltère',   region:'Bras', type:'strength', primary:['triceps'],                     secondary:[] },
+  { id:'overhead_rope',  name:'Extension triceps nuque à la poulie', eq:'Poulie', region:'Bras', type:'strength', primary:['triceps'], secondary:[] },
   { id:'close_grip',     name:'Développé prise serrée',  eq:'Barre',     region:'Bras', type:'strength', primary:['triceps','chest'],             secondary:['front_delts'] },
   { id:'wrist_curl',     name:'Curl poignets',           eq:'Haltères',  region:'Bras', type:'strength', primary:['forearms'],                    secondary:[] },
 

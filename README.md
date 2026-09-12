@@ -195,6 +195,17 @@ ou désinstaller l'app les supprime : **exporter un JSON de temps en temps**
 
 ---
 
+## Mettre à jour un programme livré avec l'app
+
+Les programmes vivent dans les données de l'appareil : modifier `seed()` ne
+change donc rien sur une app déjà installée. `migrateProgrammes()` dans
+`js/store.js` s'en charge — elle s'exécute une fois, quand `DB.programsRev` est
+inférieur à `PROGRAMMES_REV`, et **reprend les charges des exercices conservés**
+pour ne pas effacer les ajustements déjà faits. Pour une nouvelle révision :
+modifie `pushItems()` / `pullItems()` et incrémente `PROGRAMMES_REV`.
+
+---
+
 ## Structure
 
 ```

@@ -32,8 +32,41 @@ function load() {
   DB.sessions = DB.sessions || [];
   DB.customExercises = DB.customExercises || [];
   DB.muscleOverrides = DB.muscleOverrides || {};
+  migrateProgrammes();
   return DB;
 }
+/**
+ * Met à jour Push et Pull sur un appareil où l'app tourne déjà : le seed ne
+ * s'applique qu'au tout premier lancement. Les charges des exercices conservés
+ * sont reprises, pour ne pas perdre les ajustements déjà faits.
+ */
+const PROGRAMMES_REV = 2;
+function migrateProgrammes() {
+  if ((DB.programsRev || 0) >= PROGRAMMES_REV) return;
+
+  const reprendreCharges = (anciens, nouveaux) => nouveaux.map(item => {
+    const vieux = (anciens || []).find(i => i.exId === item.exId);
+    if (vieux && vieux.sets && vieux.sets.length && !item.sets.some(x => x.drop)) {
+      return Object.assign({}, item, { sets: JSON.parse(JSON.stringify(vieux.sets)) });
+    }
+    return item;
+  });
+
+  [['Push', pushItems], ['Pull', pullItems]].forEach(([nom, faire]) => {
+    const prog = DB.programs.find(p => p.name === nom);
+    if (prog) prog.items = reprendreCharges(prog.items, faire());
+    else DB.programs.push({
+      id: uid(), name: nom, emoji: nom === 'Push' ? '💪' : '🪝',
+      color: nom === 'Push' ? '#2B6BFF' : '#22D3EE',
+      note: nom === 'Push' ? 'Pecs / épaules / triceps' : 'Dos / biceps',
+      items: faire()
+    });
+  });
+
+  DB.programsRev = PROGRAMMES_REV;
+  save();
+}
+
 function save() {
   try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
   catch (e) { toast('Stockage plein : exporte une sauvegarde.', 'warn'); }
@@ -59,6 +92,7 @@ function getExercise(id) {
 /** Enregistre (ou efface) les muscles choisis pour un exercice. */
 function setMuscleOverride(id, primary, secondary) {
   DB.muscleOverrides = DB.muscleOverrides || {};
+  migrateProgrammes();
   if (!primary.length && !secondary.length) delete DB.muscleOverrides[id];
   else DB.muscleOverrides[id] = { primary, secondary };
   save();
@@ -74,6 +108,39 @@ function sets(n, reps, weight, firstWeight) {
   for (let i = 0; i < n; i++) out.push({ reps, weight: (i === 0 && firstWeight != null) ? firstWeight : weight });
   return out;
 }
+
+/* Push et Pull tels que Hugo les fait réellement (septembre 2026).
+   `ss: true` = enchaîné sans repos avec l'exercice suivant.
+   Une série sans `reps` est menée à l'échec. */
+function pushItems() {
+  return [
+    { exId: 'bench_press',           restSec: 120, sets: sets(4, 10, 40) },
+    { exId: 'db_incline',            restSec: 90,  sets: sets(3, 12, 16) },
+    { exId: 'cable_lateral',         restSec: 60,  sets: sets(3, 15, 8) },
+    { exId: 'low_cable_fly',         restSec: 75,  sets: sets(3, 12, 10) },
+    { exId: 'overhead_rope',         restSec: 60,  sets: sets(3, 12, 20) },
+    { exId: 'smith_upright',         restSec: 60,  sets: sets(3, 12, 20) }
+  ];
+}
+function pullItems() {
+  return [
+    { exId: 'lat_pulldown',          restSec: 90,  sets: sets(4, 10, 50) },
+    { exId: 'seated_row',            restSec: 90,  sets: sets(4, 12, 45) },
+    // Pullover poulie et curl concentré s'alternent : superset
+    { exId: 'straight_arm_pulldown', restSec: 75,  sets: sets(3, 12, 25), superset: true },
+    { exId: 'concentration_curl',    restSec: 75,  sets: sets(3, 12, 10) },
+    { exId: 'hammer_curl',           restSec: 60,  sets: sets(3, 12, 12) },
+    // Curl haltères entièrement en dégressif : série de travail puis deux paliers
+    { exId: 'db_curl',               restSec: 90,  sets: [
+        { reps: 12, weight: 12 },
+        { reps: 12, weight: 12 },
+        { reps: 0, weight: 12, amrap: true },
+        { reps: 0, weight: 10, amrap: true, drop: true },
+        { reps: 0, weight: 8,  amrap: true, drop: true }
+      ] }
+  ];
+}
+
 function seed() {
   return {
     v: 1,
@@ -95,28 +162,8 @@ function seed() {
           { exId: 'treadmill',     restSec: 0,   cardio: { durationMin: 15, incline: 15, speed: 5 } }
         ]
       },
-      {
-        id: uid(), name: 'Push', emoji: '💪', color: '#2B6BFF',
-        note: 'Pecs / épaules / triceps',
-        items: [
-          { exId: 'bench_press',      restSec: 120, sets: sets(4, 10, 40) },
-          { exId: 'db_incline',       restSec: 90,  sets: sets(3, 12, 16) },
-          { exId: 'db_shoulder',      restSec: 90,  sets: sets(3, 12, 14) },
-          { exId: 'lateral_raise',    restSec: 60,  sets: sets(3, 15, 8) },
-          { exId: 'triceps_pushdown', restSec: 60,  sets: sets(3, 12, 25) }
-        ]
-      },
-      {
-        id: uid(), name: 'Pull', emoji: '🪝', color: '#22D3EE',
-        note: 'Dos / biceps',
-        items: [
-          { exId: 'lat_pulldown', restSec: 90, sets: sets(4, 10, 50) },
-          { exId: 'seated_row',   restSec: 90, sets: sets(4, 12, 45) },
-          { exId: 'face_pull',    restSec: 60, sets: sets(3, 15, 20) },
-          { exId: 'db_curl',      restSec: 60, sets: sets(3, 12, 12) },
-          { exId: 'hammer_curl',  restSec: 60, sets: sets(3, 12, 12) }
-        ]
-      }
+      { id: uid(), name: 'Push', emoji: '💪', color: '#2B6BFF', note: 'Pecs / épaules / triceps', items: pushItems() },
+      { id: uid(), name: 'Pull', emoji: '🪝', color: '#22D3EE', note: 'Dos / biceps',              items: pullItems() }
     ]
   };
 }
