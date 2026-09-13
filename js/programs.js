@@ -154,9 +154,14 @@ function drawEditorItems(body) {
         </div>
         <div class="ex-body">
           <div class="grid g3">
-            <div><label class="tiny muted">Durée (min)</label><input type="number" inputmode="decimal" data-c="durationMin" data-i="${idx}" value="${item.cardio.durationMin}"></div>
-            <div><label class="tiny muted">Pente (%)</label><input type="number" inputmode="decimal" data-c="incline" data-i="${idx}" value="${item.cardio.incline}"></div>
-            <div><label class="tiny muted">Vitesse (km/h)</label><input type="number" inputmode="decimal" data-c="speed" data-i="${idx}" value="${item.cardio.speed}"></div>
+            ${ex.run ? `
+              <div><label class="tiny muted">Distance (km)</label><input type="number" inputmode="decimal" step="0.1" data-c="distanceKm" data-i="${idx}" value="${item.cardio.distanceKm || 0}"></div>
+              <div><label class="tiny muted">Durée (min)</label><input type="number" inputmode="decimal" data-c="durationMin" data-i="${idx}" value="${item.cardio.durationMin || 0}"></div>
+              <div><label class="tiny muted">Pente (%)</label><input type="number" inputmode="decimal" data-c="incline" data-i="${idx}" value="${item.cardio.incline || 0}"></div>`
+            : `
+              <div><label class="tiny muted">Durée (min)</label><input type="number" inputmode="decimal" data-c="durationMin" data-i="${idx}" value="${item.cardio.durationMin}"></div>
+              <div><label class="tiny muted">Pente (%)</label><input type="number" inputmode="decimal" data-c="incline" data-i="${idx}" value="${item.cardio.incline}"></div>
+              <div><label class="tiny muted">Vitesse (km/h)</label><input type="number" inputmode="decimal" data-c="speed" data-i="${idx}" value="${item.cardio.speed}"></div>`}
           </div>
         </div>
       </div>`;

@@ -132,11 +132,28 @@ function drawSessionList() {
           <button class="btn xs danger" data-rme="${ei}">✕</button>
         </div>
         <div class="ex-body">
-          <div class="grid g3">
-            <div><label class="tiny muted">Durée (min)</label><input type="number" inputmode="decimal" data-cardio="durationMin" data-e="${ei}" value="${entry.cardio.durationMin}"></div>
-            <div><label class="tiny muted">Pente (%)</label><input type="number" inputmode="decimal" data-cardio="incline" data-e="${ei}" value="${entry.cardio.incline}"></div>
-            <div><label class="tiny muted">Vitesse (km/h)</label><input type="number" inputmode="decimal" data-cardio="speed" data-e="${ei}" value="${entry.cardio.speed}"></div>
-          </div>
+          ${ex.run ? `
+            <div class="grid g3">
+              <div><label class="tiny muted">Distance (km)</label><input type="number" inputmode="decimal" step="0.1" data-cardio="distanceKm" data-e="${ei}" value="${entry.cardio.distanceKm || ''}"></div>
+              <div><label class="tiny muted">Durée (min)</label><input type="number" inputmode="decimal" data-cardio="durationMin" data-e="${ei}" value="${entry.cardio.durationMin || ''}"></div>
+              <div><label class="tiny muted">Pente (%)</label><input type="number" inputmode="decimal" data-cardio="incline" data-e="${ei}" value="${entry.cardio.incline || 0}"></div>
+            </div>
+            ${pace(entry.cardio.distanceKm, entry.cardio.durationMin)
+              ? `<div class="row" style="gap:6px;margin-top:9px"><span class="chip cyan">⏱ ${pace(entry.cardio.distanceKm, entry.cardio.durationMin)}</span></div>` : ''}
+            <div style="margin-top:10px">
+              <label class="tiny muted">Chaussures</label>
+              <select data-shoe="${ei}">
+                <option value="">— aucune —</option>
+                ${activeShoes().map(sh => `<option value="${sh.id}" ${entry.cardio.shoeId === sh.id ? 'selected' : ''}>${esc(sh.name)} · ${shoeKm(sh.id)} km</option>`).join('')}
+              </select>
+              ${!activeShoes().length ? '<p class="tiny muted" style="margin:6px 0 0">Ajoute une paire dans Paramètres pour suivre son usure.</p>' : ''}
+            </div>`
+          : `
+            <div class="grid g3">
+              <div><label class="tiny muted">Durée (min)</label><input type="number" inputmode="decimal" data-cardio="durationMin" data-e="${ei}" value="${entry.cardio.durationMin}"></div>
+              <div><label class="tiny muted">Pente (%)</label><input type="number" inputmode="decimal" data-cardio="incline" data-e="${ei}" value="${entry.cardio.incline}"></div>
+              <div><label class="tiny muted">Vitesse (km/h)</label><input type="number" inputmode="decimal" data-cardio="speed" data-e="${ei}" value="${entry.cardio.speed}"></div>
+            </div>`}
         </div>
       </div>`;
 
@@ -206,6 +223,10 @@ function drawSessionList() {
   });
   $$('[data-cardio]', box).forEach(inp => inp.onchange = () => {
     s.entries[+inp.dataset.e].cardio[inp.dataset.cardio] = Number(inp.value) || 0;
+    save(); drawSessionList();   // met à jour l'allure affichée
+  });
+  $$('[data-shoe]', box).forEach(sel => sel.onchange = () => {
+    s.entries[+sel.dataset.shoe].cardio.shoeId = sel.value || null;
     save();
   });
   $$('[data-addset]', box).forEach(b => b.onclick = () => {
@@ -345,7 +366,25 @@ function showSessionSummary(sess, changes) {
       <div class="stat warm"><b>${fmtVolume(sess.volume)}</b><span>volume</span></div>
     </div>
     <p class="tiny muted">Muscles principaux : ${esc(top.join(', ') || '—')}</p>
-    ${cardioMinutes([sess]) ? `<div class="row wrap" style="gap:6px;margin-bottom:10px"><span class="chip pink">❤️ ${cardioMinutes([sess])} min de cardio</span></div>` : ''}
+    ${cardioMinutes([sess]) ? `<div class="row wrap" style="gap:6px;margin-bottom:10px">
+      <span class="chip pink">❤️ ${cardioMinutes([sess])} min de cardio</span>
+      ${runKm([sess]) ? `<span class="chip cyan">🏃 ${runKm([sess])} km</span>` : ''}
+    </div>` : ''}
+    ${(() => {
+      const paires = [...new Set((sess.entries || []).map(e => e.cardio && e.cardio.shoeId).filter(Boolean))];
+      return paires.map(id => {
+        const sh = getShoe(id); if (!sh) return '';
+        const km = shoeKm(id), u = shoeWear(id);
+        return `<div class="card" style="padding:12px">
+          <div class="vbar" style="margin:0">
+            <div class="lbl"><span>👟 ${esc(sh.name)}</span><b class="muted">${km} / ${sh.limitKm} km</b></div>
+            <div class="track"><div class="fill" style="width:${Math.min(100, u)}%;background:${u >= 100 ? 'var(--red)' : u >= 85 ? 'var(--grad-warm)' : 'var(--grad)'}"></div></div>
+          </div>
+          ${u >= 100 ? '<p class="tiny" style="margin:8px 0 0;color:var(--red)">Limite dépassée — il est temps de changer de paire.</p>'
+            : u >= 85 ? `<p class="tiny" style="margin:8px 0 0;color:var(--yellow)">Plus que ${Math.max(0, sh.limitKm - km)} km avant de changer.</p>` : ''}
+        </div>`;
+      }).join('');
+    })()}
     <div class="bodies" id="sumBodies"></div>
     ${changes.length ? `
       <div class="section-title" style="margin-top:16px">Charges ajustées pour la prochaine fois</div>

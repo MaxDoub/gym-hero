@@ -159,6 +159,24 @@ mémorisée et revient à chaque fois.
 Un superset peut réunir plus de deux exercices : lie simplement chaque exercice
 avec le suivant.
 
+### Course à pied et usure des chaussures
+
+Le programme **Course** enregistre une sortie comme n'importe quelle séance :
+distance, durée, dénivelé. L'**allure** (min/km) se calcule toute seule, et les
+muscles sollicités s'allument sur le corps — quadriceps, ischio-jambiers,
+mollets, fessiers, abdominaux, plus le cœur.
+
+Chaque sortie s'attribue à une **paire de chaussures**, déclarée dans
+Paramètres ▸ *Chaussures de course*. L'app cumule les kilomètres et affiche une
+jauge : bleue, puis orange à partir de 85 %, rouge une fois la limite franchie.
+La limite par défaut est de **800 km**, réglable par paire — une paire de running
+se change en général entre 600 et 900 km. Si tu déclares une paire déjà portée,
+indique ses kilomètres estimés dans *Km déjà parcourus*.
+
+Dès qu'une paire atteint 85 %, une carte d'alerte apparaît sur l'accueil avec le
+nombre de kilomètres restants. Une paire retirée du service n'est plus proposée
+pour les nouvelles sorties, mais ses kilomètres restent consultables.
+
 ### Le cardio
 
 Tapis, vélo, elliptique, rameur, escalier et corde à sauter comptent comme

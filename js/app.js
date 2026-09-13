@@ -54,6 +54,22 @@ function renderHome() {
         </div>
       </div>`}
 
+    ${shoesToWatch().map(sh => {
+      const km = shoeKm(sh.id), u = shoeWear(sh.id);
+      return `<div class="card" data-shoe-alert="${sh.id}" style="border-left:4px solid ${u >= 100 ? 'var(--red)' : 'var(--orange)'}">
+        <div class="row between">
+          <div style="min-width:0">
+            <b>👟 ${esc(sh.name)}</b>
+            <div class="tiny" style="color:${u >= 100 ? 'var(--red)' : 'var(--yellow)'}">
+              ${u >= 100 ? `${km} km — il est temps de changer de paire`
+                          : `${km} km — encore ${Math.round(sh.limitKm - km)} km avant de changer`}
+            </div>
+          </div>
+          <span class="chev">›</span>
+        </div>
+      </div>`;
+    }).join('')}
+
     <div class="grid g4">
       <div class="stat accent"><b>${s.total}</b><span>total</span></div>
       <div class="stat"><b>${s.week}</b><span>semaine</span></div>
@@ -72,6 +88,9 @@ function renderHome() {
       </div>
       ${s.cardioWeek ? `<div class="row between tiny muted" style="margin-top:4px">
         <span>❤️ Cardio cette semaine</span><b style="color:var(--txt)">${s.cardioWeek} min</b>
+      </div>` : ''}
+      ${s.kmWeek ? `<div class="row between tiny muted" style="margin-top:4px">
+        <span>🏃 Distance cette semaine</span><b style="color:var(--txt)">${s.kmWeek} km</b>
       </div>` : ''}
     </div>
 
@@ -113,6 +132,7 @@ function renderHome() {
   renderBodyView($('#homeBodies', v), normalize(volumeByMuscle(sessionsInLastDays(7))), { uid: 'hm' });
   $$('[data-ex]', v).forEach(el => el.onclick = () => exerciseSheet(el.dataset.ex));
   $$('[data-sess]', v).forEach(el => el.onclick = () => sessionSheet(el.dataset.sess));
+  $$('[data-shoe-alert]', v).forEach(el => el.onclick = () => shoeSheet(el.dataset.shoeAlert));
 }
 
 /** Suggère le programme le moins récemment fait. */
@@ -402,8 +422,15 @@ function sessionSheet(id) {
     <p class="tiny muted" style="margin-top:0">${fmtDate(s.date, true)} · ${fmtDur(s.durationSec || 0)} · ${fmtVolume(sessionVolume(s))}</p>
     ${(s.entries || []).map(e => {
       const ex = getExercise(e.exId);
-      if (e.cardio) return `<div class="card"><b>${esc(ex.name)}</b>
-        <div class="tiny muted">${e.cardio.durationMin} min · ${e.cardio.incline}% de pente · ${e.cardio.speed} km/h</div></div>`;
+      if (e.cardio) {
+        const sh = e.cardio.shoeId ? getShoe(e.cardio.shoeId) : null;
+        const p = pace(e.cardio.distanceKm, e.cardio.durationMin);
+        return `<div class="card"><b>${esc(ex.name)}</b>
+          <div class="tiny muted">${ex.run && e.cardio.distanceKm
+            ? `${e.cardio.distanceKm} km · ${e.cardio.durationMin} min${p ? ' · ' + p : ''}${e.cardio.incline ? ' · ' + e.cardio.incline + '% de pente' : ''}`
+            : `${e.cardio.durationMin} min · ${e.cardio.incline}% de pente · ${e.cardio.speed} km/h`}</div>
+          ${sh ? `<div class="tiny muted" style="margin-top:4px">👟 ${esc(sh.name)}</div>` : ''}</div>`;
+      }
       return `<div class="card"><b>${esc(ex.name)}</b>
         <div class="tiny muted" style="margin:2px 0 8px">${esc(muscleLine(ex))}</div>
         <div class="row wrap" style="gap:6px">${(e.sets || []).filter(x => x.done !== false)
@@ -580,6 +607,11 @@ function renderSettings() {
       <button class="btn danger block" style="margin-top:12px" id="stReset">Tout réinitialiser</button>
     </div>
 
+    <div class="section-title">Chaussures de course
+      <button class="btn xs" id="shoeAdd">＋ Ajouter</button>
+    </div>
+    <div id="shoeList"></div>
+
     <div class="section-title">Démonstrations</div>
     <div class="card">
       <p class="tiny muted" style="margin-top:0">Chaque exercice montre deux photos et la marche à suivre.
@@ -636,6 +668,9 @@ function renderSettings() {
     };
     inp.click();
   };
+  drawShoes(v);
+  $('#shoeAdd', v).onclick = () => shoeSheet(null);
+
   $('#stPrecache', v).onclick = () => {
     const urls = [];
     allExercises().forEach(e => { const d = demoImages(e.id); if (d) urls.push(...d); });
@@ -665,6 +700,85 @@ function renderSettings() {
     'Séances, programmes et records seront supprimés définitivement. Exporte une sauvegarde avant !', 'Tout effacer', () => {
       localStorage.removeItem(DB_KEY); DB = null; load(); renderAll(); go('home'); toast('Application réinitialisée');
     }, true);
+}
+
+/* ---------------- Chaussures de course ---------------- */
+function drawShoes(root) {
+  const box = $('#shoeList', root);
+  if (!box) return;
+  const paires = DB.shoes.slice().sort((a, b) => (a.retiredAt ? 1 : 0) - (b.retiredAt ? 1 : 0));
+
+  box.innerHTML = paires.length ? paires.map(sh => {
+    const km = shoeKm(sh.id), u = shoeWear(sh.id), reste = Math.max(0, sh.limitKm - km);
+    const couleur = u >= 100 ? 'var(--red)' : u >= 85 ? 'var(--grad-warm)' : 'var(--grad)';
+    return `
+      <div class="card" style="${sh.retiredAt ? 'opacity:.55' : ''}">
+        <div class="row between" style="margin-bottom:10px">
+          <div style="min-width:0">
+            <b>👟 ${esc(sh.name)}</b>
+            <div class="tiny muted">${sh.retiredAt ? 'Retirée le ' + fmtDate(sh.retiredAt) : 'Depuis le ' + fmtDate(sh.addedAt)}</div>
+          </div>
+          <button class="icon-btn" data-shoe-edit="${sh.id}" aria-label="Modifier">✏️</button>
+        </div>
+        <div class="vbar" style="margin:0">
+          <div class="lbl"><span>${km} km parcourus</span><b class="muted">${sh.limitKm} km</b></div>
+          <div class="track"><div class="fill" style="width:${Math.min(100, u)}%;background:${couleur}"></div></div>
+        </div>
+        <div class="tiny" style="margin-top:8px;color:${u >= 100 ? 'var(--red)' : u >= 85 ? 'var(--yellow)' : 'var(--muted)'}">
+          ${u >= 100 ? `⚠️ Limite dépassée de ${Math.round(km - sh.limitKm)} km — à remplacer`
+            : `Encore ${Math.round(reste)} km avant de changer · ${u} %`}
+        </div>
+      </div>`;
+  }).join('') : `
+    <div class="card tiny muted center">
+      Aucune paire suivie. Ajoute tes chaussures pour compter leurs kilomètres
+      et savoir quand les changer.
+    </div>`;
+
+  $$('[data-shoe-edit]', box).forEach(b => b.onclick = () => shoeSheet(b.dataset.shoeEdit));
+}
+
+/** Ajout ou modification d'une paire. */
+function shoeSheet(id) {
+  const sh = id ? getShoe(id) : null;
+  openSheet(sh ? 'Modifier la paire' : 'Nouvelle paire', `
+    <div class="field"><label>Nom</label>
+      <input id="shName" value="${sh ? esc(sh.name) : ''}" placeholder="Nike Pegasus 41"></div>
+    <div class="grid g2">
+      <div class="field"><label>Limite (km)</label>
+        <input type="number" id="shLimit" value="${sh ? sh.limitKm : 800}"></div>
+      <div class="field"><label>Km déjà parcourus</label>
+        <input type="number" id="shInit" value="${sh ? sh.initialKm : 0}"></div>
+    </div>
+    <p class="tiny muted" style="margin-top:-4px">Une paire de running se change en général
+    entre 600 et 900 km. Si tu la portes déjà, indique les kilomètres estimés.</p>
+    ${sh ? `
+      <div class="row between" style="margin:16px 0 4px">
+        <div><b>${sh.retiredAt ? 'Paire retirée' : 'Paire en service'}</b>
+          <div class="tiny muted">${sh.retiredAt ? 'Elle n\'est plus proposée pour les courses' : 'Proposée par défaut pour tes courses'}</div></div>
+        <div class="switch ${sh.retiredAt ? '' : 'on'}" id="shActive"></div>
+      </div>` : ''}
+    <button class="btn primary block" style="margin-top:14px" id="shSave">${sh ? 'Enregistrer' : 'Ajouter la paire'}</button>
+    ${sh ? '<button class="btn danger block" style="margin-top:8px" id="shDel">🗑 Supprimer</button>' : ''}
+  `, body => {
+    if (sh) $('#shActive', body).onclick = e => {
+      retireShoe(sh.id, !sh.retiredAt ? true : false);
+      e.currentTarget.classList.toggle('on', !sh.retiredAt);
+    };
+    $('#shSave', body).onclick = () => {
+      const nom = $('#shName', body).value.trim();
+      if (!nom) return toast('Donne un nom à cette paire', 'warn');
+      const limite = Number($('#shLimit', body).value) || SHOE_LIMIT_DEFAULT;
+      const depart = Number($('#shInit', body).value) || 0;
+      if (sh) { sh.name = nom; sh.limitKm = limite; sh.initialKm = depart; save(); }
+      else addShoe(nom, limite, depart);
+      closeSheet(); renderAll();
+      toast(sh ? 'Paire mise à jour' : 'Paire ajoutée 👟', 'ok');
+    };
+    if (sh) $('#shDel', body).onclick = () => confirmSheet('Supprimer cette paire ?',
+      'Les kilomètres déjà enregistrés dans tes séances sont conservés, mais ils ne seront plus rattachés à une paire.',
+      'Supprimer', () => { deleteShoe(sh.id); closeSheet(); renderAll(); toast('Paire supprimée'); }, true);
+  });
 }
 
 /* ==================== GRAPHIQUES ==================== */

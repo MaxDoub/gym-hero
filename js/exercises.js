@@ -87,7 +87,9 @@ const EXERCISE_LIBRARY = [
   { id:'side_plank',     name:'Gainage latéral',         eq:'Poids du corps', region:'Tronc', type:'strength', primary:['obliques'],              secondary:['abs'], timed:true },
 
   /* ---------- CARDIO ---------- */
-  { id:'treadmill',      name:'Tapis de course',         eq:'Cardio',    region:'Cardio', type:'cardio', primary:['cardio'],                      secondary:['quads','calves','hamstrings'] },
+  { id:'running',        name:'Course à pied',           eq:'Extérieur', region:'Cardio', type:'cardio', run:true, primary:['cardio'],            secondary:['quads','hamstrings','calves','glutes','abs'] },
+  { id:'trail',          name:'Trail / sentier',         eq:'Extérieur', region:'Cardio', type:'cardio', run:true, primary:['cardio'],            secondary:['quads','hamstrings','calves','glutes','abductors','abs'] },
+  { id:'treadmill',      name:'Tapis de course',         eq:'Cardio',    region:'Cardio', type:'cardio', run:true, primary:['cardio'],            secondary:['quads','calves','hamstrings'] },
   { id:'bike',           name:'Vélo',                    eq:'Cardio',    region:'Cardio', type:'cardio', primary:['cardio'],                      secondary:['quads','calves'] },
   { id:'elliptical',     name:'Elliptique',              eq:'Cardio',    region:'Cardio', type:'cardio', primary:['cardio'],                      secondary:['quads','glutes','calves'] },
   { id:'rower',          name:'Rameur',                  eq:'Cardio',    region:'Cardio', type:'cardio', primary:['cardio'],                      secondary:['lats','mid_back','quads','biceps'] },

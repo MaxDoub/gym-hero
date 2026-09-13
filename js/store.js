@@ -32,6 +32,7 @@ function load() {
   DB.sessions = DB.sessions || [];
   DB.customExercises = DB.customExercises || [];
   DB.muscleOverrides = DB.muscleOverrides || {};
+  DB.shoes = DB.shoes || [];
   migrateProgrammes();
   return DB;
 }
@@ -40,7 +41,7 @@ function load() {
  * s'applique qu'au tout premier lancement. Les charges des exercices conservés
  * sont reprises, pour ne pas perdre les ajustements déjà faits.
  */
-const PROGRAMMES_REV = 2;
+const PROGRAMMES_REV = 3;
 function migrateProgrammes() {
   if ((DB.programsRev || 0) >= PROGRAMMES_REV) return;
 
@@ -52,15 +53,17 @@ function migrateProgrammes() {
     return item;
   });
 
-  [['Push', pushItems], ['Pull', pullItems]].forEach(([nom, faire]) => {
+  [['Push', pushItems], ['Pull', pullItems], ['Course', courseItems]].forEach(([nom, faire]) => {
     const prog = DB.programs.find(p => p.name === nom);
     if (prog) prog.items = reprendreCharges(prog.items, faire());
-    else DB.programs.push({
-      id: uid(), name: nom, emoji: nom === 'Push' ? '💪' : '🪝',
-      color: nom === 'Push' ? '#2B6BFF' : '#22D3EE',
-      note: nom === 'Push' ? 'Pecs / épaules / triceps' : 'Dos / biceps',
-      items: faire()
-    });
+    else {
+      const deco = {
+        Push:   { emoji: '💪', color: '#2B6BFF', note: 'Pecs / épaules / triceps' },
+        Pull:   { emoji: '🪝', color: '#22D3EE', note: 'Dos / biceps' },
+        Course: { emoji: '🏃', color: '#FFC531', note: 'Sortie course à pied' }
+      }[nom];
+      DB.programs.push({ id: uid(), name: nom, emoji: deco.emoji, color: deco.color, note: deco.note, items: faire() });
+    }
   });
 
   DB.programsRev = PROGRAMMES_REV;
@@ -92,6 +95,7 @@ function getExercise(id) {
 /** Enregistre (ou efface) les muscles choisis pour un exercice. */
 function setMuscleOverride(id, primary, secondary) {
   DB.muscleOverrides = DB.muscleOverrides || {};
+  DB.shoes = DB.shoes || [];
   migrateProgrammes();
   if (!primary.length && !secondary.length) delete DB.muscleOverrides[id];
   else DB.muscleOverrides[id] = { primary, secondary };
@@ -122,6 +126,11 @@ function pushItems() {
     { exId: 'smith_upright',         restSec: 60,  sets: sets(3, 12, 20) }
   ];
 }
+function courseItems() {
+  return [
+    { exId: 'running', restSec: 0, cardio: { durationMin: 0, distanceKm: 0, incline: 0 } }
+  ];
+}
 function pullItems() {
   return [
     { exId: 'lat_pulldown',          restSec: 90,  sets: sets(4, 10, 50) },
@@ -147,6 +156,7 @@ function seed() {
     settings: Object.assign({}, DEFAULT_SETTINGS),
     customExercises: [],
     muscleOverrides: {},
+    shoes: [],
     sessions: [],
     active: null,
     programs: [
@@ -163,9 +173,77 @@ function seed() {
         ]
       },
       { id: uid(), name: 'Push', emoji: '💪', color: '#2B6BFF', note: 'Pecs / épaules / triceps', items: pushItems() },
-      { id: uid(), name: 'Pull', emoji: '🪝', color: '#22D3EE', note: 'Dos / biceps',              items: pullItems() }
+      { id: uid(), name: 'Pull', emoji: '🪝', color: '#22D3EE', note: 'Dos / biceps',              items: pullItems() },
+      { id: uid(), name: 'Course', emoji: '🏃', color: '#FFC531', note: 'Sortie course à pied',     items: courseItems() }
     ]
   };
+}
+
+/* ---------------- Chaussures de course ----------------
+   Une semelle s'écrase bien avant qu'on ne le sente : on compte les
+   kilomètres pour savoir quand changer de paire.                     */
+const SHOE_LIMIT_DEFAULT = 800;
+
+function addShoe(name, limitKm, initialKm) {
+  const shoe = {
+    id: uid(),
+    name: name || 'Nouvelle paire',
+    limitKm: Number(limitKm) || SHOE_LIMIT_DEFAULT,
+    initialKm: Number(initialKm) || 0,
+    addedAt: todayISO(),
+    retiredAt: null
+  };
+  DB.shoes.push(shoe);
+  save();
+  return shoe;
+}
+function retireShoe(id, retired) {
+  const s = DB.shoes.find(x => x.id === id);
+  if (s) { s.retiredAt = retired === false ? null : todayISO(); save(); }
+}
+function deleteShoe(id) { DB.shoes = DB.shoes.filter(s => s.id !== id); save(); }
+
+/** Les paires encore en service, la plus récente d'abord. */
+function activeShoes() { return DB.shoes.filter(s => !s.retiredAt); }
+/** Paire utilisée par défaut pour une nouvelle course. */
+function defaultShoe() { return activeShoes().slice(-1)[0] || null; }
+function getShoe(id) { return DB.shoes.find(s => s.id === id) || null; }
+
+/** Kilomètres parcourus avec une paire, séances enregistrées comprises. */
+function shoeKm(id) {
+  const shoe = getShoe(id);
+  if (!shoe) return 0;
+  let km = shoe.initialKm || 0;
+  DB.sessions.forEach(sess => (sess.entries || []).forEach(e => {
+    if (e.cardio && e.cardio.shoeId === id) km += Number(e.cardio.distanceKm) || 0;
+  }));
+  return Math.round(km * 10) / 10;
+}
+/** Usure en pourcentage de la limite. */
+function shoeWear(id) {
+  const shoe = getShoe(id);
+  if (!shoe) return 0;
+  return Math.min(999, Math.round(shoeKm(id) / (shoe.limitKm || SHOE_LIMIT_DEFAULT) * 100));
+}
+/** Paires à remplacer ou sur le point de l'être. */
+function shoesToWatch() {
+  return activeShoes().filter(s => shoeWear(s.id) >= 85)
+    .sort((a, b) => shoeWear(b.id) - shoeWear(a.id));
+}
+
+/** Distance totale courue sur une liste de séances. */
+function runKm(sessions) {
+  return Math.round(sessions.reduce((t, sess) => t + (sess.entries || [])
+    .reduce((x, e) => x + (e.cardio ? (Number(e.cardio.distanceKm) || 0) : 0), 0), 0) * 10) / 10;
+}
+/** Allure en minutes par kilomètre, formatée. */
+function pace(distanceKm, durationMin) {
+  const d = Number(distanceKm) || 0, m = Number(durationMin) || 0;
+  if (!d || !m) return null;
+  const parMin = m / d;
+  const min = Math.floor(parMin);
+  const sec = Math.round((parMin - min) * 60);
+  return `${min}'${String(sec).padStart(2, '0')}"/km`;
 }
 
 /* ---------------- Volume ---------------- */
@@ -246,7 +324,9 @@ function stats() {
   return { total: DB.sessions.length, week, month, year, volume, exercises: exSet.size, last,
            streak: st.current, bestStreak: st.best,
            cardioWeek: cardioMinutes(sessionsSince(startOfWeek(now))),
-           cardioTotal: cardioMinutes(DB.sessions) };
+           cardioTotal: cardioMinutes(DB.sessions),
+           kmWeek: runKm(sessionsSince(startOfWeek(now))),
+           kmTotal: runKm(DB.sessions) };
 }
 
 /** Séries de semaines consécutives contenant au moins une séance. */
@@ -375,7 +455,11 @@ function startSession(programId, dateISO) {
   const entries = (prog ? prog.items : []).map(item => {
     const ex = getExercise(item.exId);
     return ex.type === 'cardio'
-      ? { exId: item.exId, name: ex.name, cardio: Object.assign({ durationMin: 15, incline: 0, speed: 6 }, item.cardio), note: item.note || '' }
+      ? { exId: item.exId, name: ex.name,
+          cardio: Object.assign({ durationMin: 15, incline: 0, speed: 6 },
+                                ex.run ? { distanceKm: 0, shoeId: (defaultShoe() || {}).id || null } : {},
+                                item.cardio),
+          note: item.note || '' }
       : { exId: item.exId, name: ex.name, restSec: item.restSec || DB.settings.restDefault,
           superset: !!item.superset,
           sets: (item.sets || []).map(s => ({ reps: s.reps, weight: s.weight, done: !!dateISO,
