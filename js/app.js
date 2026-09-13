@@ -2,7 +2,7 @@
 
 /* Doit correspondre à CACHE dans sw.js : sert à savoir, depuis l'appareil,
    quelle version on utilise réellement. */
-const APP_BUILD = 17;
+const APP_BUILD = 18;
 const APP_VERSION = '1.' + APP_BUILD;
 
 let currentTab = 'home';
@@ -735,22 +735,45 @@ function renderSettings() {
     } catch (e) { toast('Vérification impossible (hors ligne ?)', 'warn'); }
   };
 
-  $('#stCopy', v).onclick = async () => {
+  $('#stCopy', v).onclick = () => {
     if (!DB.sessions.length) {
       return toast('Cet appareil ne contient aucune séance.<br><span class="tiny">Copie depuis la version qui a tes données.</span>', 'warn');
     }
     const txt = exportJSON();
-    try {
-      await navigator.clipboard.writeText(txt);
-      toast(`${DB.sessions.length} séances copiées ✅<br><span class="tiny">Ouvre l'autre version et touche « Coller »</span>`, 'ok');
-    } catch (e) {
-      // Refus du presse-papiers : on affiche le texte à copier à la main
-      openSheet('Copie manuelle', `
-        <p class="tiny muted" style="margin-top:0">Sélectionne tout le texte ci-dessous, copie-le,
-        puis colle-le dans l'autre version via « Coller des données ».</p>
-        <textarea id="dumpTxt" rows="10" style="font-size:11px;font-family:ui-monospace,monospace">${esc(txt)}</textarea>
-      `, body => { const t = $('#dumpTxt', body); t.focus(); t.select(); });
-    }
+    const poids = Math.round(txt.length / 1024);
+
+    // Safari refuse parfois d'écrire un gros texte dans le presse-papiers, et
+    // il le fait sans erreur : on montre toujours le texte pour que la copie
+    // soit vérifiable, plutôt que de promettre un succès invisible.
+    openSheet('Copier mes données', `
+      <p class="tiny muted" style="margin-top:0">
+        <b>${DB.sessions.length} séances</b> · ${poids} Ko.
+        Touche le bouton ci-dessous, puis va dans l'autre version et colle.</p>
+      <button class="btn primary block" id="cpGo">⧉ Copier dans le presse-papiers</button>
+      <p class="tiny muted" style="margin:14px 0 6px">Si la copie ne prend pas, sélectionne
+      le texte ci-dessous (appui long ▸ Tout sélectionner ▸ Copier) :</p>
+      <textarea id="cpTxt" rows="6" readonly style="font-size:10px;font-family:ui-monospace,monospace">${esc(txt)}</textarea>
+    `, body => {
+      $('#cpGo', body).onclick = async () => {
+        const zone = $('#cpTxt', body);
+        let ok = false;
+        try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) { /* repli ci-dessous */ }
+        if (!ok) {
+          // Méthode ancienne, mais la seule qui passe sur certains Safari
+          try { zone.removeAttribute('readonly'); zone.focus(); zone.setSelectionRange(0, txt.length);
+                ok = document.execCommand('copy'); zone.setAttribute('readonly', ''); } catch (e) { /* tant pis */ }
+        }
+        // On relit le presse-papiers quand c'est permis, pour ne pas mentir
+        let verifie = null;
+        try { const lu = await navigator.clipboard.readText(); verifie = lu.length === txt.length; } catch (e) { /* non autorisé */ }
+        if (ok && verifie !== false) {
+          closeSheet();
+          toast(`${DB.sessions.length} séances copiées ✅<br><span class="tiny">Colle-les dans l'autre version</span>`, 'ok');
+        } else {
+          toast('La copie automatique a échoué.<br><span class="tiny">Sélectionne le texte à la main ci-dessous.</span>', 'warn');
+        }
+      };
+    });
   };
 
   $('#stPaste', v).onclick = () => {
