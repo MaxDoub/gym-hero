@@ -2,7 +2,7 @@
 
 /* Doit correspondre à CACHE dans sw.js : sert à savoir, depuis l'appareil,
    quelle version on utilise réellement. */
-const APP_BUILD = 16;
+const APP_BUILD = 17;
 const APP_VERSION = '1.' + APP_BUILD;
 
 let currentTab = 'home';
@@ -736,6 +736,9 @@ function renderSettings() {
   };
 
   $('#stCopy', v).onclick = async () => {
+    if (!DB.sessions.length) {
+      return toast('Cet appareil ne contient aucune séance.<br><span class="tiny">Copie depuis la version qui a tes données.</span>', 'warn');
+    }
     const txt = exportJSON();
     try {
       await navigator.clipboard.writeText(txt);
@@ -753,19 +756,38 @@ function renderSettings() {
   $('#stPaste', v).onclick = () => {
     openSheet('Coller des données', `
       <p class="tiny muted" style="margin-top:0">Colle ici la sauvegarde copiée depuis l'autre version.
-      <b style="color:var(--red)">Cela remplacera toutes les données de cet appareil.</b></p>
+      Les séances manquantes seront <b>ajoutées</b> aux tiennes : rien n'est effacé,
+      et une séance déjà présente n'est pas dupliquée.</p>
       <textarea id="pasteTxt" rows="7" placeholder="Colle ici (appui long ▸ Coller)" style="font-size:11px;font-family:ui-monospace,monospace"></textarea>
-      <button class="btn primary block" style="margin-top:12px" id="pasteGo">Remplacer mes données</button>
+      <button class="btn primary block" style="margin-top:12px" id="pasteGo">Ajouter ces séances</button>
+      <button class="btn ghost block danger" style="margin-top:8px" id="pasteReplace">Tout remplacer à la place</button>
     `, body => {
-      $('#pasteGo', body).onclick = () => {
+      const lire = () => {
         const txt = $('#pasteTxt', body).value.trim();
-        if (!txt) return toast('Rien à coller', 'warn');
+        if (!txt) { toast('Rien à coller', 'warn'); return null; }
+        return txt;
+      };
+      $('#pasteGo', body).onclick = () => {
+        const txt = lire(); if (!txt) return;
         try {
-          const avant = DB.sessions.length;
-          importJSON(txt);
+          const r = mergeJSON(txt);
+          if (!r.dansLaSauvegarde) {
+            return toast('Cette sauvegarde ne contient aucune séance.<br><span class="tiny">Tu as sans doute copié depuis le mauvais appareil.</span>', 'warn');
+          }
           closeSheet(); renderAll();
-          toast(`Données importées ✅<br><span class="tiny">${DB.sessions.length} séances (${avant} avant)</span>`, 'ok');
+          toast(r.ajoutees
+            ? `${r.ajoutees} séance${r.ajoutees > 1 ? 's' : ''} ajoutée${r.ajoutees > 1 ? 's' : ''} ✅<br><span class="tiny">${r.total} au total</span>`
+            : `Rien de nouveau : ces ${r.dansLaSauvegarde} séances étaient déjà là`, 'ok');
         } catch (e) { toast('Sauvegarde illisible', 'warn'); }
+      };
+      $('#pasteReplace', body).onclick = () => {
+        const txt = lire(); if (!txt) return;
+        confirmSheet('Tout remplacer ?',
+          `Les ${DB.sessions.length} séances de cet appareil seront effacées et remplacées par celles de la sauvegarde.`,
+          'Remplacer', () => {
+            try { importJSON(txt); renderAll(); toast(`${DB.sessions.length} séances importées ✅`, 'ok'); }
+            catch (e) { toast('Sauvegarde illisible', 'warn'); }
+          }, true);
       };
     });
   };

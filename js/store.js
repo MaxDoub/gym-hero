@@ -548,3 +548,42 @@ function importJSON(text) {
   if (!data || !Array.isArray(data.sessions)) throw new Error('Fichier invalide');
   DB = data; load(); save();
 }
+
+/**
+ * Fusionne une sauvegarde avec les donnees presentes, sans rien ecraser.
+ * Une seance deja connue (meme identifiant, ou meme date et meme programme)
+ * n'est pas dupliquee.
+ */
+function mergeJSON(text) {
+  const data = JSON.parse(text);
+  if (!data || !Array.isArray(data.sessions)) throw new Error('Sauvegarde invalide');
+
+  const avant = DB.sessions.length;
+  const connues = new Set(DB.sessions.map(s => s.id));
+  const empreinte = new Set(DB.sessions.map(s => s.date + '|' + s.programName + '|' + Math.round(s.volume || 0)));
+  let ajoutees = 0;
+
+  data.sessions.forEach(s => {
+    if (connues.has(s.id)) return;
+    if (empreinte.has(s.date + '|' + s.programName + '|' + Math.round(s.volume || 0))) return;
+    DB.sessions.push(s);
+    ajoutees++;
+  });
+  DB.sessions.sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  let progAjoutes = 0, shoesAjoutees = 0;
+  const noms = new Set(DB.programs.map(p => p.name));
+  (data.programs || []).forEach(p => { if (!noms.has(p.name)) { DB.programs.push(p); progAjoutes++; } });
+
+  const chaussures = new Set(DB.shoes.map(x => x.name));
+  (data.shoes || []).forEach(x => { if (!chaussures.has(x.name)) { DB.shoes.push(x); shoesAjoutees++; } });
+
+  const exos = new Set(DB.customExercises.map(e => e.id));
+  (data.customExercises || []).forEach(e => { if (!exos.has(e.id)) DB.customExercises.push(e); });
+
+  Object.assign(DB.muscleOverrides, data.muscleOverrides || {});
+
+  save();
+  return { avant, ajoutees, total: DB.sessions.length, progAjoutes, shoesAjoutees,
+           dansLaSauvegarde: data.sessions.length };
+}
