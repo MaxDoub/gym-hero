@@ -1,5 +1,10 @@
 /* Gym Hero — routeur et vues Accueil / Progression / Anatomie / Régularité / Paramètres */
 
+/* Doit correspondre à CACHE dans sw.js : sert à savoir, depuis l'appareil,
+   quelle version on utilise réellement. */
+const APP_BUILD = 15;
+const APP_VERSION = '1.' + APP_BUILD;
+
 let currentTab = 'home';
 const charts = {};
 
@@ -632,8 +637,9 @@ function renderSettings() {
 
     <div class="card center tiny muted">
       <img src="icons/icon-192.png" width="64" height="64" style="border-radius:15px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto" alt="">
-      <div><b style="color:var(--txt)">Gym Hero</b> · v1.0</div>
-      <div>Fait pour la salle, pas pour le cloud.</div>
+      <div><b style="color:var(--txt)">Gym Hero</b> · version <b style="color:var(--cyan)">${APP_VERSION}</b></div>
+      <div style="margin-top:6px">Fait pour la salle, pas pour le cloud.</div>
+      <button class="btn sm" id="stUpdate" style="margin-top:12px">↻ Chercher une mise à jour</button>
     </div>`;
 
   const num = (id, key) => $(id, v).onchange = e => { DB.settings[key] = Number(e.target.value) || 0; save(); };
@@ -694,6 +700,23 @@ function renderSettings() {
     });
     navigator.serviceWorker.controller.postMessage({ type: 'precache-demos', urls });
     toast('Téléchargement lancé…');
+  };
+
+  $('#stUpdate', v).onclick = async () => {
+    toast('Recherche…');
+    try {
+      const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.update();
+      const r = await fetch('sw.js?ts=' + Date.now(), { cache: 'reload' });
+      const m = (await r.text()).match(/gym-hero-v(\d+)/);
+      const enLigne = m ? Number(m[1]) : null;
+      if (enLigne && enLigne > APP_BUILD) {
+        toast('Nouvelle version trouvée, rechargement…', 'ok');
+        setTimeout(() => location.reload(), 900);
+      } else {
+        toast('Tu es déjà à jour ✅', 'ok');
+      }
+    } catch (e) { toast('Vérification impossible (hors ligne ?)', 'warn'); }
   };
 
   $('#stReset', v).onclick = () => confirmSheet('Tout effacer ?',
@@ -832,7 +855,24 @@ function init() {
   renderAll();
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        // Dès qu'une version plus récente prend la main, on recharge : sinon
+        // l'appareil continue de servir l'ancienne indéfiniment.
+        reg.addEventListener('updatefound', () => {
+          const suivant = reg.installing;
+          if (!suivant) return;
+          suivant.addEventListener('statechange', () => {
+            if (suivant.state === 'activated' && navigator.serviceWorker.controller) location.reload();
+          });
+        });
+        reg.update();
+      }).catch(() => {});
+    });
+    let rechargement = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!rechargement) { rechargement = true; location.reload(); }
+    });
   }
 }
 document.addEventListener('DOMContentLoaded', init);

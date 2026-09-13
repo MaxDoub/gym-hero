@@ -59,10 +59,21 @@ sont à recaler.
 
 ## Mettre à jour l'app publiée
 
-Les fichiers sont appelés avec un numéro de version (`js/app.js?v=4`). À chaque
-publication, incrémente ce numéro **dans `index.html` et dans `sw.js`**, ainsi
-que `CACHE` dans `sw.js` : sans ça, navigateurs et téléphones déjà installés
-continuent de servir l'ancienne version depuis leur cache.
+Trois choses à incrémenter ensemble à chaque publication :
+`?v=N` dans **`index.html`**, les mêmes `?v=N` et `CACHE` dans **`sw.js`**, et
+`APP_BUILD` en tête de **`js/app.js`**. Sans ça, navigateurs et téléphones déjà
+installés continuent de servir l'ancienne version depuis leur cache.
+
+`APP_BUILD` s'affiche dans Paramètres (« version 1.15 ») : c'est le seul moyen
+de savoir, depuis l'appareil, quelle version tourne réellement. Le bouton
+*Chercher une mise à jour* compare cette valeur à celle du `sw.js` en ligne et
+recharge si besoin. Depuis la v15, l'app se recharge aussi d'elle-même dès qu'un
+nouveau service worker prend la main.
+
+**Si une publication ne change rien en ligne** : GitHub Pages a pu manquer le
+déclenchement (c'est arrivé pendant un incident de leur côté — commit reçu,
+aucun build lancé). Un `git commit --allow-empty` suivi d'un `git push` relance
+la construction.
 
 ---
 
