@@ -2,7 +2,7 @@
 
 /* Doit correspondre à CACHE dans sw.js : sert à savoir, depuis l'appareil,
    quelle version on utilise réellement. */
-const APP_BUILD = 15;
+const APP_BUILD = 16;
 const APP_VERSION = '1.' + APP_BUILD;
 
 let currentTab = 'home';
@@ -106,15 +106,16 @@ function renderHome() {
           <div class="emoji">${s.last.emoji || '🏋️'}</div>
           <div class="grow">
             <b>${esc(s.last.programName)}</b>
-            <span>${fmtDate(s.last.date, true)} · ${relDate(s.last.date)} · ${fmtVolume(sessionVolume(s.last))}</span>
+            <span>${fmtDate(s.last.date, true)} · ${relDate(s.last.date)} · ${sessionSummaryLine(s.last)}</span>
           </div>
           <span class="chev">›</span>
         </div>
       </div>`
     : `<div class="empty"><div class="big">🏋️</div><b>Aucune séance</b><p class="tiny">Lance ta première séance depuis l'onglet Séance.</p></div>`}
 
-    <div class="grid g3">
-      <div class="stat warm"><b>${fmtVolume(s.volume)}</b><span>volume total</span></div>
+    <div class="grid ${s.kmTotal ? 'g4' : 'g3'}">
+      ${s.volume ? `<div class="stat warm"><b>${fmtVolume(s.volume)}</b><span>volume total</span></div>` : ''}
+      ${s.kmTotal ? `<div class="stat accent"><b>${s.kmTotal} km</b><span>course</span></div>` : ''}
       <div class="stat"><b>${s.exercises}</b><span>exercices</span></div>
       <div class="stat accent"><b>${s.bestStreak}</b><span>record régularité</span></div>
     </div>
@@ -361,7 +362,7 @@ function renderCalendar() {
       <div class="list-item" data-sess="${x.id}">
         <div class="emoji">${x.emoji || '🏋️'}</div>
         <div class="grow"><b>${esc(x.programName)}</b>
-          <span>${fmtDate(x.date, true)} · ${fmtVolume(sessionVolume(x))} · ${fmtDur(x.durationSec || 0)}</span></div>
+          <span>${fmtDate(x.date, true)} · ${sessionSummaryLine(x)}</span></div>
         <span class="chev">›</span>
       </div>`).join('')}</div>`
       : '<div class="empty tiny">Aucune séance enregistrée.</div>'}`;
@@ -380,7 +381,7 @@ function daySheet(dateISO, list) {
       <div class="list-item" data-sess="${x.id}">
         <div class="emoji">${x.emoji || '🏋️'}</div>
         <div class="grow"><b>${esc(x.programName)}</b>
-          <span>${fmtVolume(sessionVolume(x))} · ${(x.entries || []).length} exercices</span></div>
+          <span>${sessionSummaryLine(x)}</span></div>
         <span class="chev">›</span>
       </div>`).join('')}</div>`
       : `<p class="tiny muted" style="margin-top:0">Rien d'enregistré ce jour-là.</p>`}
@@ -424,7 +425,7 @@ function sessionSheet(id) {
   const s = DB.sessions.find(x => x.id === id);
   if (!s) return;
   openSheet(`${s.emoji || '🏋️'} ${s.programName}`, `
-    <p class="tiny muted" style="margin-top:0">${fmtDate(s.date, true)} · ${fmtDur(s.durationSec || 0)} · ${fmtVolume(sessionVolume(s))}</p>
+    <p class="tiny muted" style="margin-top:0">${fmtDate(s.date, true)} · ${sessionSummaryLine(s)}${sessionIsRun(s) ? '' : ' · ' + fmtDur(s.durationSec || 0)}</p>
     ${(s.entries || []).map(e => {
       const ex = getExercise(e.exId);
       if (e.cardio) {
@@ -589,10 +590,17 @@ function renderSettings() {
     <div class="section-title">Retours</div>
     <div class="card">
       <div class="row between" style="margin-bottom:12px">
-        <div><b>Son de fin de repos</b></div><div class="switch ${st.sound ? 'on' : ''}" id="stSound"></div>
+        <div><b>Son de fin de repos</b>
+          <div class="tiny muted">Deux bips à la fin du chrono${VIBRATION_DISPO ? '' : ' — le seul retour possible sur iPhone'}</div>
+        </div>
+        <div class="switch ${st.sound ? 'on' : ''}" id="stSound"></div>
       </div>
       <div class="row between">
-        <div><b>Vibration</b></div><div class="switch ${st.vibrate ? 'on' : ''}" id="stVib"></div>
+        <div>
+          <b>Vibration</b>
+          ${VIBRATION_DISPO ? '' : '<div class="tiny muted">Indisponible sur iPhone : Safari ne permet pas aux apps web de faire vibrer l\'appareil. Garde le son actif pour être prévenu.</div>'}
+        </div>
+        <div class="switch ${st.vibrate && VIBRATION_DISPO ? 'on' : ''}" id="stVib" ${VIBRATION_DISPO ? '' : 'style="opacity:.4;pointer-events:none"'}></div>
       </div>
     </div>
 
@@ -603,6 +611,14 @@ function renderSettings() {
       <div class="grid g2">
         <button class="btn" id="stExport">⬇︎ Exporter</button>
         <button class="btn" id="stImport">⬆︎ Importer</button>
+      </div>
+      <div class="divider"></div>
+      <p class="tiny muted" style="margin:0 0 10px">
+        <b style="color:var(--yellow)">Safari et l'app de l'écran d'accueil ont chacun leurs données.</b>
+        Pour transférer, copie depuis l'une et colle dans l'autre.</p>
+      <div class="grid g2">
+        <button class="btn" id="stCopy">⧉ Copier mes données</button>
+        <button class="btn" id="stPaste">⇥ Coller des données</button>
       </div>
       <div class="divider"></div>
       <div class="row between tiny muted">
@@ -717,6 +733,41 @@ function renderSettings() {
         toast('Tu es déjà à jour ✅', 'ok');
       }
     } catch (e) { toast('Vérification impossible (hors ligne ?)', 'warn'); }
+  };
+
+  $('#stCopy', v).onclick = async () => {
+    const txt = exportJSON();
+    try {
+      await navigator.clipboard.writeText(txt);
+      toast(`${DB.sessions.length} séances copiées ✅<br><span class="tiny">Ouvre l'autre version et touche « Coller »</span>`, 'ok');
+    } catch (e) {
+      // Refus du presse-papiers : on affiche le texte à copier à la main
+      openSheet('Copie manuelle', `
+        <p class="tiny muted" style="margin-top:0">Sélectionne tout le texte ci-dessous, copie-le,
+        puis colle-le dans l'autre version via « Coller des données ».</p>
+        <textarea id="dumpTxt" rows="10" style="font-size:11px;font-family:ui-monospace,monospace">${esc(txt)}</textarea>
+      `, body => { const t = $('#dumpTxt', body); t.focus(); t.select(); });
+    }
+  };
+
+  $('#stPaste', v).onclick = () => {
+    openSheet('Coller des données', `
+      <p class="tiny muted" style="margin-top:0">Colle ici la sauvegarde copiée depuis l'autre version.
+      <b style="color:var(--red)">Cela remplacera toutes les données de cet appareil.</b></p>
+      <textarea id="pasteTxt" rows="7" placeholder="Colle ici (appui long ▸ Coller)" style="font-size:11px;font-family:ui-monospace,monospace"></textarea>
+      <button class="btn primary block" style="margin-top:12px" id="pasteGo">Remplacer mes données</button>
+    `, body => {
+      $('#pasteGo', body).onclick = () => {
+        const txt = $('#pasteTxt', body).value.trim();
+        if (!txt) return toast('Rien à coller', 'warn');
+        try {
+          const avant = DB.sessions.length;
+          importJSON(txt);
+          closeSheet(); renderAll();
+          toast(`Données importées ✅<br><span class="tiny">${DB.sessions.length} séances (${avant} avant)</span>`, 'ok');
+        } catch (e) { toast('Sauvegarde illisible', 'warn'); }
+      };
+    });
   };
 
   $('#stReset', v).onclick = () => confirmSheet('Tout effacer ?',

@@ -216,6 +216,23 @@ Si toutes les séries ont atteint l'objectif de répétitions, elle ajoute autom
 +2,5 kg (haut du corps) ou +5 kg (bas du corps) — réglable, et désactivable, dans Paramètres.
 La séance suivante démarre donc déjà pré-remplie avec les bons poids.
 
+### Safari et l'app installée ont des données séparées
+
+Sur iOS, une app ajoutée à l'écran d'accueil possède son propre stockage,
+distinct de celui de Safari — même adresse, deux coffres. Une séance saisie
+dans Safari n'apparaît donc pas dans l'app installée, et inversement.
+
+Paramètres propose **Copier mes données** / **Coller des données** : le transfert
+passe par le presse-papiers, bien plus commode que les fichiers sur iPhone.
+Le plus simple reste de n'utiliser qu'une seule des deux versions — l'app
+installée de préférence, puisqu'elle fonctionne hors ligne.
+
+### Vibrations
+
+iOS n'expose pas l'API de vibration aux sites web : sur iPhone, seul le son
+signale la fin du chrono de repos. Le réglage est grisé et expliqué plutôt que
+laissé actif sans effet, et le signal sonore compte trois bips au lieu de deux.
+
 ### Sauvegarde
 
 Les données vivent dans le `localStorage` de Safari. Effacer les données du site

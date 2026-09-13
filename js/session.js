@@ -52,11 +52,20 @@ function renderSession() {
     <div class="hero">
       <div class="row between">
         <div><h2>${s.emoji || '⚡'} ${esc(s.programName)}</h2>
-          <p>${past ? (s.editingId ? 'Correction · ' : 'Saisie a posteriori · ') + fmtDate(s.date, true)
-                    : fmtDate(s.date, true) + ' · <span id="sessClock">' + fmtDur(elapsed) + '</span>'}</p></div>
+          <p>${(() => {
+            const minSaisies = cardioMinutes([s]);
+            const estSortie = !sessionVolume(s) && minSaisies > 0;
+            if (past) return (s.editingId ? 'Correction · ' : 'Saisie a posteriori · ') + fmtDate(s.date, true);
+            // Pour une sortie, c'est ton temps de course qui compte, pas le chrono de l'app
+            if (estSortie) return fmtDate(s.date, true) + ' · ' + fmtDur(minSaisies * 60);
+            return fmtDate(s.date, true) + ' · <span id="sessClock">' + fmtDur(elapsed) + '</span>';
+          })()}</p></div>
         <div style="text-align:right">
-          <b style="font-size:22px">${doneSets}/${allSets}</b>
-          <div class="tiny" style="opacity:.85">séries</div>
+          ${(() => {
+            const km = runKm([s]);
+            if (!allSets && km) return `<b style="font-size:22px">${km}</b><div class="tiny" style="opacity:.85">km</div>`;
+            return `<b style="font-size:22px">${doneSets}/${allSets}</b><div class="tiny" style="opacity:.85">séries</div>`;
+          })()}
         </div>
       </div>
       ${past ? `
@@ -69,7 +78,11 @@ function renderSession() {
         <button class="btn" id="sessAdd">➕ Exercice</button>
         <button class="btn" id="sessCancel">✕</button>
       </div>
-      <div class="tiny" style="opacity:.85;margin-top:10px">Volume : <b>${fmtVolume(vol)}</b></div>
+      <div class="tiny" style="opacity:.85;margin-top:10px">${(() => {
+        const km = runKm([s]), min = cardioMinutes([s]);
+        if (!vol && km) { const p = pace(km, min); return `Sortie : <b>${km} km</b>${p ? ' · ' + p : ''}`; }
+        return `Volume : <b>${fmtVolume(vol)}</b>`;
+      })()}</div>
     </div>
     <div id="sessList"></div>
     <div class="card">
@@ -269,7 +282,7 @@ function refreshSessionHeader() {
     const b = hero.querySelector('div[style*="right"] b');
     if (b) b.textContent = `${doneSets}/${allSets}`;
     const vt = hero.querySelector('.tiny b');
-    if (vt) vt.textContent = fmtVolume(sessionVolume(s));
+    if (vt) { const km = runKm([s]); vt.textContent = (!sessionVolume(s) && km) ? km + ' km' : fmtVolume(sessionVolume(s)); }
   }
   const bodies = $('#sessBodies');
   if (bodies) renderBodyView(bodies, normalize(volumeByMuscle([s])), { uid: 'ss' });
@@ -304,7 +317,8 @@ function drawRest() {
   let bar = $('.rest-bar');
   if (left <= 0) {
     stopRest();
-    beep(760, 180); setTimeout(() => beep(980, 260), 200);
+    // Sur iPhone la vibration n'existe pas : trois bips valent mieux que deux.
+    beep(760, 170); setTimeout(() => beep(980, 170), 200); setTimeout(() => beep(1240, 320), 420);
     buzz([120, 80, 120]);
     toast('Repos terminé — série suivante 💪', 'ok');
     return;
@@ -362,8 +376,10 @@ function showSessionSummary(sess, changes) {
   openSheet(sess.date === todayISO() ? 'Séance terminée 🎉' : `Séance du ${fmtDate(sess.date)} enregistrée ✅`, `
     <div class="grid g3" style="margin-bottom:14px">
       <div class="stat accent"><b>${sess.durationSec ? fmtDur(sess.durationSec) : '—'}</b><span>durée</span></div>
-      <div class="stat"><b>${sess.entries.length}</b><span>exercices</span></div>
-      <div class="stat warm"><b>${fmtVolume(sess.volume)}</b><span>volume</span></div>
+      <div class="stat"><b>${sess.entries.length}</b><span>exercice${sess.entries.length > 1 ? 's' : ''}</span></div>
+      ${sessionIsRun(sess)
+        ? `<div class="stat warm"><b>${runKm([sess])} km</b><span>distance</span></div>`
+        : `<div class="stat warm"><b>${fmtVolume(sess.volume)}</b><span>volume</span></div>`}
     </div>
     <p class="tiny muted">Muscles principaux : ${esc(top.join(', ') || '—')}</p>
     ${cardioMinutes([sess]) ? `<div class="row wrap" style="gap:6px;margin-bottom:10px">

@@ -48,8 +48,11 @@ function muscleLine(ex) {
 }
 
 /* ---------- Retour haptique / sonore ---------- */
+/* iOS n'expose pas l'API de vibration : sur iPhone, seul le son prévient. */
+const VIBRATION_DISPO = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+
 function buzz(pattern) {
-  if (DB.settings.vibrate && navigator.vibrate) navigator.vibrate(pattern || 18);
+  if (DB.settings.vibrate && VIBRATION_DISPO) navigator.vibrate(pattern || 18);
 }
 function beep(freq = 880, ms = 160) {
   if (!DB.settings.sound) return;

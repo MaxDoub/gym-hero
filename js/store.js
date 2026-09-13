@@ -231,6 +231,21 @@ function shoesToWatch() {
     .sort((a, b) => shoeWear(b.id) - shoeWear(a.id));
 }
 
+/** Une séance de course : pas de charge soulevée, mais des kilomètres. */
+function sessionIsRun(sess) {
+  return sessionVolume(sess) === 0 && runKm([sess]) > 0;
+}
+/** Résumé lisible d'une séance : kilos pour la muscu, kilomètres pour la course. */
+function sessionSummaryLine(sess) {
+  if (sessionIsRun(sess)) {
+    const km = runKm([sess]);
+    const min = cardioMinutes([sess]);
+    const p = pace(km, min);
+    return `${km} km${min ? ' · ' + fmtDur(min * 60) : ''}${p ? ' · ' + p : ''}`;
+  }
+  return fmtVolume(sessionVolume(sess));
+}
+
 /** Distance totale courue sur une liste de séances. */
 function runKm(sessions) {
   return Math.round(sessions.reduce((t, sess) => t + (sess.entries || [])
@@ -480,7 +495,13 @@ function finishSession() {
   const s = DB.active;
   if (!s) return null;
   s.endedAt = Date.now();
-  s.durationSec = s.past ? (s.durationSec || 0) : Math.round((s.endedAt - s.startedAt) / 1000);
+  // Pour une sortie, la durée qui compte est celle que tu as saisie, pas le
+  // temps passé dans l'app à la noter.
+  const minCardio = (s.entries || []).reduce((t, e) => t + (e.cardio ? (Number(e.cardio.durationMin) || 0) : 0), 0);
+  const estCourse = sessionVolume(s) === 0 && minCardio > 0;
+  s.durationSec = estCourse ? minCardio * 60
+    : s.past ? (s.durationSec || 0)
+    : Math.round((s.endedAt - s.startedAt) / 1000);
   s.entries = s.entries.filter(e => e.cardio || (e.sets || []).some(x => x.done));
   s.volume = sessionVolume(s);
 
